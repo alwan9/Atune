@@ -318,48 +318,60 @@ function sanitizeString(str, maxLength = 100) {
 }
 
 /**
- * Fetch data dengan batas waktu & pelaporan progress
+ * Fetch data dengan batas waktu & pelaporan progress, dilengkapi fallback CORS proxy
  */
 async function fetchWithProgress(url, onProgress = () => {}) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 detik timeout
+  const tryFetch = async (targetUrl) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
+
+    try {
+      const response = await fetch(targetUrl, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP Error: ${response.status}`);
+      }
+
+      const contentLength = response.headers.get('content-length');
+      const total = contentLength ? parseInt(contentLength, 10) : 0;
+
+      if (!response.body || !total) {
+        const blob = await response.blob();
+        onProgress(100);
+        return blob;
+      }
+
+      const reader = response.body.getReader();
+      let receivedLength = 0;
+      const chunks = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        chunks.push(value);
+        receivedLength += value.length;
+        onProgress(Math.min(100, Math.round((receivedLength / total) * 100)));
+      }
+
+      return new Blob(chunks, { type: 'audio/mpeg' });
+    } catch (err) {
+      clearTimeout(timeoutId);
+      throw err;
+    }
+  };
 
   try {
-    const response = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      throw new Error(`HTTP Error saat mengunduh audio: ${response.status}`);
+    return await tryFetch(url);
+  } catch (directErr) {
+    console.warn('Direct audio stream fetch failed (likely CORS), trying CORS proxy...', directErr);
+    try {
+      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+      return await tryFetch(proxyUrl);
+    } catch (proxyErr) {
+      console.error('Proxy fetch failed as well:', proxyErr);
+      throw new Error('Gagal mengunduh stream audio secara langsung. Silakan gunakan halaman YouTube Converter untuk mengunduh MP3.');
     }
-
-    const contentLength = response.headers.get('content-length');
-    const total = contentLength ? parseInt(contentLength, 10) : 0;
-
-    if (!response.body || !total) {
-      const blob = await response.blob();
-      onProgress(100);
-      return blob;
-    }
-
-    const reader = response.body.getReader();
-    let receivedLength = 0;
-    const chunks = [];
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      chunks.push(value);
-      receivedLength += value.length;
-      onProgress(Math.min(100, Math.round((receivedLength / total) * 100)));
-    }
-
-    return new Blob(chunks, { type: 'audio/mpeg' });
-  } catch (err) {
-    clearTimeout(timeoutId);
-    if (err.name === 'AbortError') {
-      throw new Error('Unduhan gagal: Waktu koneksi habis (Timeout).');
-    }
-    throw err;
   }
 }

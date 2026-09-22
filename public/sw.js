@@ -44,16 +44,14 @@ self.addEventListener('fetch', (event) => {
   // Abaikan scheme selain http/https (mencegah error chrome-extension://)
   if (!url.protocol.startsWith('http')) return;
 
+  // HANYA tangani same-origin requests untuk caching PWA!
+  // Membiarkan cross-origin third-party requests (savenow.to, loader.to, googleapis, tikwm) berjalan secara native tanpa memicu error TypeError Response.
+  if (url.origin !== self.location.origin) {
+    return;
+  }
+
   // Jangan cache audio streaming blob, external third-party APIs, atau Vite dev server HMR
   if (
-    url.protocol === 'blob:' ||
-    url.protocol === 'data:' ||
-    url.pathname.endsWith('.mp3') ||
-    url.pathname.endsWith('.flac') ||
-    url.hostname.includes('cobalt') ||
-    url.hostname.includes('tikwm') ||
-    url.hostname.includes('googleapis') ||
-    url.hostname.includes('googlevideo') ||
     url.pathname.includes('@vite') ||
     url.pathname.includes('node_modules')
   ) {
@@ -88,6 +86,7 @@ self.addEventListener('fetch', (event) => {
         if (event.request.mode === 'navigate') {
           return caches.match('./index.html');
         }
+        return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
       });
     })
   );

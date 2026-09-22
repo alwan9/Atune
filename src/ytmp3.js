@@ -267,53 +267,89 @@ async function handleQualityAction(action, bitrate, btnEl) {
     });
 
     if (action === 'download') {
-      // Direct Download file to user's device
-      showToast(`⬇️ Mengunduh "${cleanFilename}" ke perangkat Anda...`);
+      // Direct Download file to user's device via native browser anchor
+      showToast(`⬇️ Mengunduh "${cleanFilename}"...`);
       const a = document.createElement('a');
       a.href = downloadUrl;
       a.download = cleanFilename;
       a.target = '_blank';
+      a.rel = 'noopener noreferrer';
       document.body.appendChild(a);
       a.click();
-      setTimeout(() => document.body.removeChild(a), 2000);
+      setTimeout(() => a.remove(), 2000);
 
-      showToast(`🎉 Sukses! File "${cleanFilename}" berhasil diunduh langsung.`);
+      showToast(`🎉 Sukses! File "${cleanFilename}" sedang diunduh ke perangkat Anda.`);
     } else if (action === 'save-offline' || action === 'save-drive') {
       showToast(`Mengambil file audio MP3...`);
-      const audioRes = await fetch(downloadUrl);
-      if (!audioRes.ok) throw new Error('Gagal mengambil file audio dari server.');
-      const audioBlob = await audioRes.blob();
+      let audioBlob = null;
 
-      if (action === 'save-offline') {
-        const newSong = {
-          title: editTitle,
-          artist: editArtist,
-          album: 'YouTube to MP3',
-          duration: 0,
-          audioBlob: audioBlob,
-          coverBlob: null,
-          source: 'youtube',
-          isFavorite: 0,
-          dateAdded: Date.now()
-        };
-
-        const existing = await db.songs.where('title').equalsIgnoreCase(editTitle).first();
-        if (!existing) {
-          await db.songs.add(newSong);
+      // Coba ambil blob secara langsung atau melalui CORS proxy
+      try {
+        const audioRes = await fetch(downloadUrl);
+        if (audioRes.ok) {
+          audioBlob = await audioRes.blob();
         }
+      } catch (corsErr) {
+        console.warn('Direct fetch blocked by CORS, trying proxy...', corsErr);
+      }
 
-        showToast(`🎉 Berhasil disimpan ke Offline ATune! Siap diputar tanpa internet.`);
-      } else if (action === 'save-drive') {
-        showToast(`☁️ Mengunggah "${cleanFilename}" ke Google Drive...`);
-        const uploadRes = await uploadAudioToGDrive(audioBlob, cleanFilename, {
-          title: editTitle,
-          artist: editArtist
-        });
-        if (uploadRes && uploadRes.status === 'success') {
-          showToast(`✅ Berhasil diunggah ke folder Google Drive!`);
-        } else {
-          showToast(`Tersimpan di antrean sinkronisasi Google Drive.`);
+      if (!audioBlob) {
+        // Coba CORS proxy
+        try {
+          const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(downloadUrl)}`;
+          const proxyRes = await fetch(proxyUrl);
+          if (proxyRes.ok) {
+            audioBlob = await proxyRes.blob();
+          }
+        } catch (proxyErr) {
+          console.warn('CORS proxy fetch failed:', proxyErr);
         }
+      }
+
+      if (audioBlob) {
+        if (action === 'save-offline') {
+          const newSong = {
+            title: editTitle,
+            artist: editArtist,
+            album: 'YouTube to MP3',
+            duration: 0,
+            audioBlob: audioBlob,
+            coverBlob: null,
+            source: 'youtube',
+            isFavorite: 0,
+            dateAdded: Date.now()
+          };
+
+          const existing = await db.songs.where('title').equalsIgnoreCase(editTitle).first();
+          if (!existing) {
+            await db.songs.add(newSong);
+          }
+
+          showToast(`🎉 Berhasil disimpan ke Offline ATune! Siap diputar tanpa internet.`);
+        } else if (action === 'save-drive') {
+          showToast(`☁️ Mengunggah "${cleanFilename}" ke Google Drive...`);
+          const uploadRes = await uploadAudioToGDrive(audioBlob, cleanFilename, {
+            title: editTitle,
+            artist: editArtist
+          });
+          if (uploadRes && uploadRes.status === 'success') {
+            showToast(`✅ Berhasil diunggah ke folder Google Drive!`);
+          } else {
+            showToast(`Tersimpan di antrean sinkronisasi Google Drive.`);
+          }
+        }
+      } else {
+        // Fallback jika browser memblokir fetch blob: langsung trigger download file
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = cleanFilename;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => a.remove(), 2000);
+
+        showToast(`⬇️ File "${cleanFilename}" diunduh langsung. Anda dapat memasukkannya ke ATune melalui tombol "+ Tambah Musik".`);
       }
     }
   } catch (err) {

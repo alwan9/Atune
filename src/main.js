@@ -1217,8 +1217,14 @@ function setupEventListeners() {
   });
 
   // Local File Upload & Global Drag-Drop
-  elements.btnBrowseFiles?.addEventListener('click', () => elements.fileInput?.click());
-  elements.dropZone?.addEventListener('click', () => elements.fileInput?.click());
+  elements.btnBrowseFiles?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    elements.fileInput?.click();
+  });
+  elements.dropZone?.addEventListener('click', (e) => {
+    if (e.target === elements.fileInput || e.target.closest('#btn-browse-files')) return;
+    elements.fileInput?.click();
+  });
   elements.btnSyncAllGdrive?.addEventListener('click', async () => {
     await syncCatalogFromGoogleDrive(true);
     await syncPendingSongsToGDrive(true);
