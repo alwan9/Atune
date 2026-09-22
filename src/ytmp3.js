@@ -158,75 +158,45 @@ function renderResult(video) {
   }
 }
 
+// Helper function to launch Y2mate converter in new tab
+export function openY2mateDownload(youtubeUrl) {
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = 'https://vww-y2mate.com/id801';
+  form.target = '_blank';
+  const input = document.createElement('input');
+  input.type = 'hidden';
+  input.name = 'query';
+  input.value = youtubeUrl;
+  form.appendChild(input);
+  document.body.appendChild(form);
+  form.submit();
+  document.body.removeChild(form);
+}
+
 // Handle Download / Save Offline / Drive Action
 async function handleQualityAction(action, bitrate, btnEl) {
   if (!currentVideoData) return;
 
   const originalContent = btnEl.innerHTML;
-  btnEl.disabled = true;
-  btnEl.innerHTML = `<svg class="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> <span>Proses...</span>`;
 
-  showToast(`Memproses konversi MP3 ${bitrate}kbps...`);
+  if (action === 'download') {
+    // 1-Click Direct Download via Y2mate
+    showToast(`🚀 Membuka unduhan MP3 (${bitrate}kbps) di Y2mate...`);
+    openY2mateDownload(currentVideoData.url);
+    showToast(`✅ Tab Y2mate terbuka. Klik Download pada format ${bitrate}kbps.`);
+    return;
+  }
 
-  try {
-    // 1. Ekstrak audio stream dari link YouTube
-    const mediaData = await extractMediaFromUrl(currentVideoData.url);
-    if (!mediaData || !mediaData.audioUrl) {
-      throw new Error('Gagal mengekstrak streaming audio. Silakan coba lagi sebentar.');
+  if (action === 'save-offline' || action === 'save-drive') {
+    // Trigger file picker to import the downloaded MP3 into ATune & Drive
+    const filePicker = document.getElementById('input-import-mp3');
+    if (filePicker) {
+      showToast(`📁 Silakan pilih file MP3 hasil unduhan untuk disimpan offline & ke Drive.`);
+      filePicker.click();
+    } else {
+      showToast(`Silakan unduh MP3 terlebih dahulu, lalu masukkan ke pemutar.`);
     }
-
-    // Ambil blob audio
-    const audioRes = await fetch(mediaData.audioUrl);
-    if (!audioRes.ok) throw new Error('Gagal mengambil file audio dari server.');
-    const audioBlob = await audioRes.blob();
-
-    const safeTitle = (mediaData.title || currentVideoData.title || 'YouTube Audio').replace(/[/\\?%*:|"<>]/g, '-').trim();
-    const filename = `${safeTitle} [${bitrate}k].mp3`;
-
-    if (action === 'download') {
-      // Direct Download to PC/Phone
-      const blobUrl = URL.createObjectURL(audioBlob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(blobUrl);
-      }, 2000);
-
-      showToast(`✅ Berhasil! File "${filename}" mulai diunduh.`);
-    } else if (action === 'save-offline') {
-      // Save directly into Dexie DB for ATune Offline Player
-      await downloadAndSaveSong({
-        ...mediaData,
-        title: safeTitle,
-        artist: currentVideoData.author || mediaData.artist || 'YouTube Audio'
-      });
-      showToast(`🎉 Berhasil disimpan ke Offline ATune! Siap diputar tanpa internet.`);
-    } else if (action === 'save-drive') {
-      // Upload to Google Drive folder
-      showToast(`☁️ Mengunggah "${filename}" ke folder Google Drive...`);
-      const uploadRes = await uploadAudioToGDrive(audioBlob, filename, {
-        title: safeTitle,
-        artist: currentVideoData.author
-      });
-      if (uploadRes && uploadRes.status === 'success') {
-        showToast(`✅ Berhasil diunggah ke Google Drive!`);
-      } else {
-        showToast(`Tersimpan di antrean sinkronisasi Drive.`);
-      }
-    }
-  } catch (err) {
-    console.error('Download error:', err);
-    // User-friendly fallback with direct stream link
-    const searchUrl = `https://www.youtube.com/watch?v=${currentVideoData.id}`;
-    showToast(`⚠️ Server konversi sedang sibuk. Mengarahkan ke jalur alternatif...`);
-    window.open(`https://co.wuk.sh/?url=${encodeURIComponent(searchUrl)}`, '_blank');
-  } finally {
-    btnEl.disabled = false;
-    btnEl.innerHTML = originalContent;
   }
 }
 
@@ -321,6 +291,53 @@ document.addEventListener('DOMContentLoaded', () => {
         if (arrow) arrow.classList.toggle('rotate-180');
       }
     });
+  });
+
+  // Import MP3 from file picker directly into Dexie DB & Google Drive
+  const inputImportMp3 = document.getElementById('input-import-mp3');
+  inputImportMp3?.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    showToast(`Memproses dan menyimpan "${file.name}"...`);
+    try {
+      const cleanTitle = file.name.replace(/\.[^/.]+$/, '');
+      const songTitle = currentVideoData?.title || cleanTitle;
+      const songArtist = currentVideoData?.author || 'YouTube Audio';
+
+      const newSong = {
+        title: songTitle,
+        artist: songArtist,
+        album: 'YouTube to MP3',
+        duration: 0,
+        audioBlob: file,
+        coverBlob: null,
+        source: 'youtube',
+        isFavorite: 0,
+        dateAdded: Date.now()
+      };
+
+      // Check duplicate
+      const existing = await db.songs.where('title').equalsIgnoreCase(songTitle).first();
+      if (!existing) {
+        await db.songs.add(newSong);
+      }
+
+      // Auto upload to Google Drive folder
+      showToast(`☁️ Menyimpan offline & mengunggah ke Google Drive...`);
+      uploadAudioToGDrive(file, `${songTitle}.mp3`, {
+        title: songTitle,
+        artist: songArtist
+      }).catch((err) => console.warn('Drive upload error:', err));
+
+      showToast(`🎉 Berhasil disimpan ke Offline ATune & Drive! Membuka pemutar...`);
+      setTimeout(() => {
+        window.location.href = 'index.html';
+      }, 1500);
+    } catch (err) {
+      console.error('Import error:', err);
+      showToast(`Gagal menyimpan file: ${err.message}`);
+    }
   });
 
   // Check URL params for query or auto-download

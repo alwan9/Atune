@@ -196,65 +196,20 @@ export async function extractYouTubeAudio(youtubeUrl, onProgress = () => {}) {
     }
   }
 
-  // Endpoints konverter audio YouTube yang aktif
-  const youtubeEndpoints = [
-    {
-      url: 'https://api.cobalt.tools/',
-      type: 'cobalt'
-    }
-  ];
+  // Catatan: Server publik YouTube bot protection & JWT requirement
+  const youtubeEndpoints = [];
 
   let audioBlob = null;
   let lastError = null;
 
   for (const endpoint of youtubeEndpoints) {
-    try {
-      onProgress(`Menghubungi server ekstraksi audio...`, 25);
-      
-      const res = await fetch(endpoint.url, {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          url: cleanUrl,
-          downloadMode: 'audio',
-          audioFormat: 'mp3'
-        })
-      });
-
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}));
-        if (errJson.error?.code) {
-          console.warn(`Server ${endpoint.url} merespons:`, errJson.error.code);
-        }
-        continue;
-      }
-
-      const json = await res.json();
-      const directAudioUrl = json.url || (json.audio && json.audio[0]?.url);
-
-      if (directAudioUrl && validateSafeUrl(directAudioUrl)) {
-        onProgress('Mengunduh stream audio MP3 YouTube...', 50);
-        audioBlob = await fetchWithProgress(directAudioUrl, (pct) => {
-          onProgress('Mengunduh audio YouTube...', 50 + Math.round(pct * 0.4));
-        });
-        if (json.filename) {
-          title = sanitizeString(json.filename.replace(/\.mp3$/i, ''), 100);
-        }
-        break;
-      }
-    } catch (err) {
-      console.warn(`Gagal menghubungi ${endpoint.url}:`, err.message);
-      lastError = err;
-    }
+    // Endpoints placeholder if future public CORS proxies emerge
   }
 
   if (!audioBlob) {
     throw new Error(
-      'Server ekstraksi YouTube publik sedang dibatasi kuota/proteksi bot oleh YouTube. ' +
-      'Silakan gunakan link video TikTok (100% lancar & otomatis masuk ke Drive) atau link audio Google Drive.'
+      'Server ekstraksi langsung YouTube sedang dilindungi bot/JWT oleh YouTube. ' +
+      'Silakan gunakan halaman khusus YouTube to MP3 (jalur Y2mate) atau gunakan link TikTok yang 100% otomatis masuk ke Google Drive.'
     );
   }
 

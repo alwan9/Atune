@@ -12,9 +12,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <script type="module" crossorigin src="./assets/ytmp3-CTqhG8SC.js"></script>
-  <link rel="modulepreload" crossorigin href="./assets/downloader-BsA_IH9u.js">
-  <link rel="stylesheet" crossorigin href="./assets/downloader-Cb8G1lIp.css">
+  <script type="module" crossorigin src="./assets/ytmp3-yBRuWZGQ.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/gdriveUploader-DM8RhEXb.js">
+  <link rel="stylesheet" crossorigin href="./assets/gdriveUploader-Cb8G1lIp.css">
 </head>
 <body class="bg-dark-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-brand-500 selection:text-white">
 
@@ -164,6 +164,40 @@
             </tbody>
           </table>
         </div>
+
+        <!-- Hidden File Picker to Import Downloaded MP3 directly into ATune & Drive -->
+        <input type="file" id="input-import-mp3" accept="audio/*" class="hidden" />
+
+        <!-- Helper Notice for Offline & Drive Sync -->
+        <div class="mt-4 p-3.5 rounded-2xl bg-dark-900/90 border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+          <div class="space-y-0.5">
+            <p class="font-bold text-slate-200 flex items-center gap-1.5">
+              <span>💡</span>
+              <span>Langkah Menyimpan ke Pemutar Offline ATune & Google Drive:</span>
+            </p>
+            <p class="text-slate-400 text-[11px]">
+              Klik tombol <strong>Download</strong> untuk mengambil file MP3 dari Y2mate. Setelah selesai, klik tombol <strong>🎵 Offline</strong> untuk menyimpannya di browser & otomatis mengunggahnya ke Google Drive!
+            </p>
+          </div>
+          <button type="button" onclick="document.getElementById('input-import-mp3').click()" class="px-4 py-2 rounded-xl bg-brand-500/20 hover:bg-brand-500/30 text-brand-300 border border-brand-500/40 text-xs font-semibold whitespace-nowrap transition flex items-center gap-1.5 active:scale-95 flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+            <span>Pilih File MP3 Tersimpan</span>
+          </button>
+        </div>
+
+        <!-- Alternative Server Links -->
+        <div class="mt-3 flex items-center justify-between text-[11px] text-slate-400 pt-3 border-t border-slate-800/80 flex-wrap gap-2">
+          <span>Server konverter alternatif:</span>
+          <div class="flex items-center gap-2">
+            <a href="https://cobalt.tools/" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold border border-slate-750 transition">
+              Cobalt Tools ↗
+            </a>
+            <a href="https://ytmp3.nu/" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold border border-slate-750 transition">
+              YtMP3 ↗
+            </a>
+          </div>
+        </div>
+
       </div>
 
     </section>
