@@ -196,30 +196,77 @@ export async function extractYouTubeAudio(youtubeUrl, onProgress = () => {}) {
     }
   }
 
-  // Catatan: Server publik YouTube bot protection & JWT requirement
-  const youtubeEndpoints = [];
+  onProgress('Menghubungi server konverter audio YouTube...', 20);
 
-  let audioBlob = null;
-  let lastError = null;
-
-  for (const endpoint of youtubeEndpoints) {
-    // Endpoints placeholder if future public CORS proxies emerge
+  // 1. Inisialisasi konversi langsung
+  const initUrl = `https://loader.to/ajax/download.php?button=1&start=1&end=1&format=mp3&url=${encodeURIComponent(cleanUrl)}`;
+  const initRes = await fetch(initUrl);
+  if (!initRes.ok) {
+    throw new Error('Gagal menghubungi server konverter YouTube.');
   }
 
-  if (!audioBlob) {
-    throw new Error(
-      'Server ekstraksi langsung YouTube sedang dilindungi bot/JWT oleh YouTube. ' +
-      'Silakan gunakan halaman khusus YouTube to MP3 (jalur Y2mate) atau gunakan link TikTok yang 100% otomatis masuk ke Google Drive.'
-    );
+  const initData = await initRes.json();
+  if (!initData || !initData.success || !initData.progress_url) {
+    throw new Error(initData?.text || 'Gagal memulai proses konversi YouTube.');
   }
+
+  if (initData.title) {
+    title = sanitizeString(initData.title, 120);
+  }
+
+  onProgress('Mengonversi stream YouTube ke MP3...', 40);
+
+  // 2. Polling progress URL hingga selesai
+  let downloadUrl = null;
+  let attempts = 0;
+  const maxAttempts = 30; // max 60 seconds
+
+  while (attempts < maxAttempts) {
+    await new Promise((r) => setTimeout(r, 2000));
+    attempts++;
+
+    try {
+      const progRes = await fetch(initData.progress_url);
+      if (progRes.ok) {
+        const progData = await progRes.json();
+        
+        const currentPct = Math.min(85, 40 + Math.round((attempts / maxAttempts) * 45));
+        onProgress(`Mengonversi audio (${progData.text || 'Memproses'})...`, currentPct);
+
+        if (progData.success === 1 && progData.download_url) {
+          downloadUrl = progData.download_url;
+          if (progData.title) title = sanitizeString(progData.title, 120);
+          break;
+        }
+
+        if (progData.success === -1 || (progData.text && progData.text.toLowerCase().includes('error'))) {
+          throw new Error(progData.text || 'Terjadi kesalahan saat memproses audio.');
+        }
+      }
+    } catch (pollErr) {
+      console.warn('Polling progress attempt error:', pollErr);
+    }
+  }
+
+  if (!downloadUrl) {
+    throw new Error('Waktu tunggu konversi habis. Silakan coba kembali atau gunakan link TikTok.');
+  }
+
+  onProgress('Mengunduh stream audio MP3 ke perangkat...', 88);
+
+  // 3. Ambil blob audio
+  const audioBlob = await fetchWithProgress(downloadUrl, (pct) => {
+    onProgress('Menyimpan audio...', 88 + Math.round(pct * 0.12));
+  });
 
   onProgress('Ekstraksi YouTube selesai!', 100);
 
   return {
     audioBlob,
+    audioUrl: downloadUrl,
     title,
     artist,
-    album: 'YouTube Audio',
+    album: 'YouTube to MP3',
     coverArtBlob,
     duration: 0,
     source: 'youtube',

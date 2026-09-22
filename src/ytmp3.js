@@ -199,20 +199,51 @@ function renderResult(video) {
   }
 }
 
-// Helper function to launch Y2mate converter in new tab
-export function openY2mateDownload(youtubeUrl) {
-  const form = document.createElement('form');
-  form.method = 'POST';
-  form.action = 'https://vww-y2mate.com/id801';
-  form.target = '_blank';
-  const input = document.createElement('input');
-  input.type = 'hidden';
-  input.name = 'query';
-  input.value = youtubeUrl;
-  form.appendChild(input);
-  document.body.appendChild(form);
-  form.submit();
-  document.body.removeChild(form);
+// Direct In-App YouTube to MP3 Converter Engine
+export async function convertYouTubeDirect(youtubeUrl, bitrate = 'mp3', onProgress = () => {}) {
+  const initUrl = `https://loader.to/ajax/download.php?button=1&start=1&end=1&format=mp3&url=${encodeURIComponent(youtubeUrl)}`;
+  const initRes = await fetch(initUrl);
+  if (!initRes.ok) throw new Error('Gagal menghubungi server konverter.');
+
+  const initData = await initRes.json();
+  if (!initData || !initData.success || !initData.progress_url) {
+    throw new Error(initData?.text || 'Gagal memulai konversi.');
+  }
+
+  let downloadUrl = null;
+  let attempts = 0;
+  const maxAttempts = 35;
+
+  while (attempts < maxAttempts) {
+    await new Promise((r) => setTimeout(r, 2000));
+    attempts++;
+
+    try {
+      const progRes = await fetch(initData.progress_url);
+      if (progRes.ok) {
+        const progData = await progRes.json();
+        const currentPct = Math.min(95, 20 + Math.round((attempts / maxAttempts) * 75));
+        onProgress(progData.text || 'Mengonversi audio...', currentPct);
+
+        if (progData.success === 1 && progData.download_url) {
+          downloadUrl = progData.download_url;
+          break;
+        }
+
+        if (progData.success === -1 || (progData.text && progData.text.toLowerCase().includes('error'))) {
+          throw new Error(progData.text || 'Gagal mengonversi video YouTube.');
+        }
+      }
+    } catch (e) {
+      if (e.message.includes('Gagal')) throw e;
+    }
+  }
+
+  if (!downloadUrl) {
+    throw new Error('Waktu tunggu konversi habis. Silakan coba kembali.');
+  }
+
+  return downloadUrl;
 }
 
 // Handle Download / Save Offline / Drive Action
@@ -220,24 +251,77 @@ async function handleQualityAction(action, bitrate, btnEl) {
   if (!currentVideoData) return;
 
   const originalContent = btnEl.innerHTML;
+  btnEl.disabled = true;
+  btnEl.innerHTML = `<svg class="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> <span>Mengonversi...</span>`;
 
-  if (action === 'download') {
-    // 1-Click Direct Download via Y2mate
-    showToast(`🚀 Membuka unduhan MP3 (${bitrate}kbps) di Y2mate...`);
-    openY2mateDownload(currentVideoData.url);
-    showToast(`✅ Tab Y2mate terbuka. Klik Download pada format ${bitrate}kbps.`);
-    return;
-  }
+  const editTitle = document.getElementById('edit-song-title')?.value?.trim() || currentVideoData.title;
+  const editArtist = document.getElementById('edit-song-artist')?.value?.trim() || currentVideoData.artist || 'YouTube Audio';
+  const cleanFilename = `${editArtist} - ${editTitle}`.replace(/[/\\?%*:|"<>]/g, '-').trim() + `.mp3`;
 
-  if (action === 'save-offline' || action === 'save-drive') {
-    // Trigger file picker to import the downloaded MP3 into ATune & Drive
-    const filePicker = document.getElementById('input-import-mp3');
-    if (filePicker) {
-      showToast(`📁 Silakan pilih file MP3 hasil unduhan untuk disimpan offline & ke Drive.`);
-      filePicker.click();
-    } else {
-      showToast(`Silakan unduh MP3 terlebih dahulu, lalu masukkan ke pemutar.`);
+  showToast(`⚡ Sedang mengonversi YouTube ke MP3 (${bitrate}kbps)...`);
+
+  try {
+    // In-app direct conversion
+    const downloadUrl = await convertYouTubeDirect(currentVideoData.url, 'mp3', (statusText, pct) => {
+      showToast(`Mengonversi ${pct}%: ${statusText}`);
+    });
+
+    if (action === 'download') {
+      // Direct Download file to user's device
+      showToast(`⬇️ Mengunduh "${cleanFilename}" ke perangkat Anda...`);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = cleanFilename;
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => document.body.removeChild(a), 2000);
+
+      showToast(`🎉 Sukses! File "${cleanFilename}" berhasil diunduh langsung.`);
+    } else if (action === 'save-offline' || action === 'save-drive') {
+      showToast(`Mengambil file audio MP3...`);
+      const audioRes = await fetch(downloadUrl);
+      if (!audioRes.ok) throw new Error('Gagal mengambil file audio dari server.');
+      const audioBlob = await audioRes.blob();
+
+      if (action === 'save-offline') {
+        const newSong = {
+          title: editTitle,
+          artist: editArtist,
+          album: 'YouTube to MP3',
+          duration: 0,
+          audioBlob: audioBlob,
+          coverBlob: null,
+          source: 'youtube',
+          isFavorite: 0,
+          dateAdded: Date.now()
+        };
+
+        const existing = await db.songs.where('title').equalsIgnoreCase(editTitle).first();
+        if (!existing) {
+          await db.songs.add(newSong);
+        }
+
+        showToast(`🎉 Berhasil disimpan ke Offline ATune! Siap diputar tanpa internet.`);
+      } else if (action === 'save-drive') {
+        showToast(`☁️ Mengunggah "${cleanFilename}" ke Google Drive...`);
+        const uploadRes = await uploadAudioToGDrive(audioBlob, cleanFilename, {
+          title: editTitle,
+          artist: editArtist
+        });
+        if (uploadRes && uploadRes.status === 'success') {
+          showToast(`✅ Berhasil diunggah ke folder Google Drive!`);
+        } else {
+          showToast(`Tersimpan di antrean sinkronisasi Google Drive.`);
+        }
+      }
     }
+  } catch (err) {
+    console.error('In-app conversion error:', err);
+    showToast(`Gagal: ${err.message}`);
+  } finally {
+    btnEl.disabled = false;
+    btnEl.innerHTML = originalContent;
   }
 }
 
