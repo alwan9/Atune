@@ -1,0 +1,38 @@
+{
+  "name": "ATune - Offline Music Player",
+  "short_name": "ATune",
+  "description": "ATune - Pemutar musik offline PWA dengan sinkronisasi Google Drive dan penyimpanan offline IndexedDB.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#08090d",
+  "theme_color": "#0f1117",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["music", "audio", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Library",
+      "url": "./#library",
+      "description": "Buka daftar lagu offline"
+    },
+    {
+      "name": "Downloader",
+      "url": "./#download",
+      "description": "Download lagu dari Google Drive atau Wishlist"
+    }
+  ]
+}

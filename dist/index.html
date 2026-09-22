@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0f1117" />
+  <meta name="description" content="Aura Music - Pemutar musik offline PWA yang di-host di GitHub Pages dengan sumber file lagu di Google Drive dan penyimpanan offline IndexedDB." />
+  
+  <!-- Security Headers & Content Security Policy (No Login Required) -->
+  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' https: data: blob:; media-src 'self' https: blob: data:; connect-src 'self' https: blob: data:; object-src 'none'; base-uri 'self';" />
+
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="manifest" href="manifest.json" />
+  <title>ATune - Offline PWA Player</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script type="module" crossorigin src="./assets/index-DvFMea5x.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-D9CUIo4p.css">
+</head>
+<body class="bg-dark-950 text-slate-100 min-h-screen flex flex-col antialiased select-none">
+
+  <!-- Ambient Glow Background -->
+  <div class="fixed inset-0 pointer-events-none overflow-hidden -z-10 opacity-35">
+    <div id="ambient-glow" class="absolute -top-40 left-1/2 -translate-x-1/2 w-[650px] h-[650px] bg-gradient-to-tr from-brand-500/30 via-brand-cyan/20 to-brand-violet/20 rounded-full blur-[140px] transition-all duration-1000"></div>
+  </div>
+
+  <!-- Header / Navigation Bar -->
+  <header class="sticky top-0 z-30 glass-panel border-b border-slate-800/80 px-3 sm:px-6 lg:px-8 py-3 backdrop-blur-xl">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4 w-full">
+      
+      <!-- Brand Logo -->
+      <div class="flex items-center gap-2.5 cursor-pointer flex-shrink-0" id="nav-brand">
+        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-brand-500 to-brand-cyan flex items-center justify-center shadow-lg shadow-brand-500/25 text-white font-black text-xl">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <span class="font-extrabold text-base sm:text-lg tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">ATune</span>
+            <span class="text-[9px] uppercase font-extrabold tracking-wider px-1.5 py-0.5 rounded-md bg-brand-500/20 text-brand-400 border border-brand-500/30">OFFLINE</span>
+          </div>
+          <p class="text-[10px] text-slate-400 hidden sm:block">Google Drive Storage • PWA</p>
+        </div>
+      </div>
+
+      <!-- Search Bar -->
+      <div class="flex-1 max-w-xs sm:max-w-md relative mx-1 sm:mx-2">
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        </div>
+        <input type="text" id="search-input" placeholder="Cari lagu, artis, atau album..." class="w-full pl-9 pr-3 py-1.5 sm:py-2 text-xs sm:text-sm bg-dark-900/80 border border-slate-750/80 rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400 transition" />
+      </div>
+
+      <!-- Right Header Actions -->
+      <div class="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+        <!-- Install PWA Button (Hidden by default until prompt ready) -->
+        <button id="btn-install-pwa" class="hidden items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-brand-500/15 hover:bg-brand-500/25 border border-brand-500/40 text-brand-400 text-xs font-semibold transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          <span class="hidden md:inline">Install</span>
+        </button>
+
+        <!-- Quick Add / Download Button -->
+        <button id="btn-open-downloader" class="flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white text-xs font-bold shadow-md shadow-emerald-500/20 transition transform active:scale-95">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          <span class="hidden xs:inline">Tambah Lagu</span>
+          <span class="xs:hidden">+ Lagu</span>
+        </button>
+
+        <!-- Settings / Backup Button -->
+        <button id="btn-open-settings" class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 transition" title="Pengaturan & Backup">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Main Workspace Container -->
+  <main class="flex-1 flex flex-col md:flex-row max-w-7xl w-full mx-auto p-3 sm:p-5 lg:p-6 gap-5 pb-36">
+
+    <!-- Navigation Sidebar (Desktop & Mobile Pills) -->
+    <aside class="w-full md:w-60 flex-shrink-0">
+      
+      <!-- Desktop Sidebar Card -->
+      <div class="hidden md:flex flex-col gap-1 glass-card p-3 rounded-2xl border border-slate-800/80 shadow-lg sticky top-20">
+        <div class="text-[10px] uppercase font-bold text-slate-500 tracking-wider px-3 py-1">Koleksi Offline</div>
+        
+        <button class="nav-tab tab-active flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition text-left" data-tab="all">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
+          <span>Semua Lagu</span>
+          <span id="badge-all-count" class="ml-auto text-[11px] px-2 py-0.5 rounded-md bg-dark-950/80 font-bold">0</span>
+        </button>
+
+        <button class="nav-tab text-slate-400 hover:text-slate-200 hover:bg-slate-850/60 flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition text-left" data-tab="favorites">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-rose-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          <span>Lagu Favorit</span>
+          <span id="badge-fav-count" class="ml-auto text-[11px] px-2 py-0.5 rounded-md bg-dark-950/80 font-bold">0</span>
+        </button>
+
+        <button class="nav-tab text-slate-400 hover:text-slate-200 hover:bg-slate-850/60 flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition text-left" data-tab="gdrive">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 00-9.78 2.096A4.001 4.001 0 003 15z"/></svg>
+          <span>Google Drive</span>
+        </button>
+
+        <button class="nav-tab text-slate-400 hover:text-slate-200 hover:bg-slate-850/60 flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition text-left" data-tab="local">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+          <span>File Perangkat / HP</span>
+        </button>
+
+        <div class="h-px bg-slate-800/80 my-2"></div>
+
+        <div class="text-[10px] uppercase font-bold text-slate-500 tracking-wider px-3 py-1">Fitur & Pemutar</div>
+
+        <!-- Dedicated MP3 Deck Player Tab -->
+        <button class="nav-tab text-slate-400 hover:text-slate-200 hover:bg-slate-850/60 flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition text-left" data-tab="mp3-deck">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-brand-cyan" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
+          <span>Deck Pemutar MP3</span>
+        </button>
+
+        <!-- Wishlist & Auto-Download Tab -->
+        <button class="nav-tab text-slate-400 hover:text-slate-200 hover:bg-slate-850/60 flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition text-left" data-tab="wishlist">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+          <span>Wishlist Download</span>
+          <span id="badge-wishlist-count" class="ml-auto text-[11px] px-2 py-0.5 rounded-md bg-brand-500/20 text-brand-300 font-bold">0</span>
+        </button>
+
+        <div class="h-px bg-slate-800/80 my-2"></div>
+
+        <div class="text-[10px] uppercase font-bold text-slate-500 tracking-wider px-3 py-1">Audio FX & Alat</div>
+
+        <button id="btn-open-eq" class="text-slate-400 hover:text-slate-200 hover:bg-slate-850/60 flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition text-left">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+          <span>Equalizer 5-Band</span>
+        </button>
+
+        <button id="btn-open-sleeptimer" class="text-slate-400 hover:text-slate-200 hover:bg-slate-850/60 flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition text-left">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+          <span>Sleep Timer</span>
+          <span id="badge-timer" class="hidden ml-auto text-[10px] font-bold px-2 py-0.5 rounded-md bg-violet-500/20 text-violet-300"></span>
+        </button>
+
+        <button class="nav-tab text-slate-400 hover:text-slate-200 hover:bg-slate-850/60 flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition text-left" data-tab="settings">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          <span>Pengaturan & Drive</span>
+        </button>
+      </div>
+
+      <!-- Mobile Pill Navigation Bar (Clean & Compact) -->
+      <div class="flex md:hidden items-center gap-1.5 overflow-x-auto pb-1.5 scrollbar-none px-0.5">
+        <button class="nav-tab tab-active px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 transition" data-tab="all">
+          <span>🎵 Semua</span>
+        </button>
+        <button class="nav-tab text-slate-400 bg-slate-900/80 border border-slate-800 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 transition" data-tab="favorites">
+          <span class="text-rose-400">❤️</span>
+          <span>Favorit</span>
+        </button>
+        <button class="nav-tab text-slate-400 bg-slate-900/80 border border-slate-800 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 transition" data-tab="mp3-deck">
+          <span class="text-cyan-400">🎛️</span>
+          <span>Deck MP3</span>
+        </button>
+        <button class="nav-tab text-slate-400 bg-slate-900/80 border border-slate-800 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 transition" data-tab="wishlist">
+          <span class="text-emerald-400">📋</span>
+          <span>Wishlist</span>
+        </button>
+        <button class="nav-tab text-slate-400 bg-slate-900/80 border border-slate-800 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 transition" data-tab="gdrive">
+          <span class="text-amber-400">☁️</span>
+          <span>Drive</span>
+        </button>
+        <button class="nav-tab text-slate-400 bg-slate-900/80 border border-slate-800 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 transition" data-tab="settings">
+          <span>⚙️</span>
+          <span>Drive & Setting</span>
+        </button>
+      </div>
+
+    </aside>
+
+    <!-- Main Content Area: Multi-View Switching -->
+    <section class="flex-1 min-w-0">
+
+      <!-- ==================== VIEW 1: LIBRARY (SONG LIST) ==================== -->
+      <div id="view-library" class="space-y-4">
+        
+        <!-- Clean Hero Download Box -->
+        <div class="glass-card rounded-2xl p-4 sm:p-5 border border-brand-500/25 bg-gradient-to-br from-slate-900/95 via-dark-900/95 to-slate-900/95 shadow-xl">
+          <div class="flex items-center justify-between gap-2 mb-3">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <h2 class="text-xs sm:text-sm font-bold text-white tracking-tight">Download Link TikTok & YouTube</h2>
+            </div>
+            <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-[10px] sm:text-[11px] font-semibold border border-emerald-500/25 flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              <span>Drive Terhubung</span>
+            </span>
+          </div>
+
+          <!-- Input Bar with 1-Click Paste & Download -->
+          <div class="flex flex-col sm:flex-row gap-2">
+            <div class="relative flex-1">
+              <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+              </div>
+              <input type="url" id="hero-quick-url" placeholder="Tempel link TikTok (vt.tiktok.com) atau YouTube..." class="w-full pl-9 pr-20 py-2.5 bg-dark-950/90 border border-slate-700/80 focus:border-brand-400 rounded-xl text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none transition shadow-inner" />
+              <button type="button" id="btn-hero-paste" class="absolute right-1.5 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition flex items-center gap-1">
+                <span>📋</span>
+                <span class="hidden xs:inline">Tempel</span>
+              </button>
+            </div>
+            <button id="btn-hero-download" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white text-xs sm:text-sm font-bold shadow-md shadow-emerald-500/20 transition active:scale-95 flex items-center justify-center gap-2 whitespace-nowrap flex-shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              <span>Download</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Library Controls Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between px-1 pt-1 gap-2">
+          <div>
+            <h1 id="view-title" class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+              <span>Daftar Lagu Tersimpan</span>
+            </h1>
+            <p class="text-[11px] text-slate-400" id="view-subtitle">Semua file tersimpan langsung di database offline perangkat Anda & otomatis disinkron ke Drive.</p>
+          </div>
+
+          <div class="flex items-center gap-2 flex-wrap">
+            <button id="btn-sync-all-gdrive" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 text-xs font-semibold transition border border-amber-500/30 active:scale-95" title="Sinkronkan semua lagu offline ke Google Drive">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 00-9.78 2.096A4.001 4.001 0 003 15z"/></svg>
+              <span>Sync ke Drive</span>
+            </button>
+            <button id="btn-play-all" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition border border-slate-700/60 active:scale-95">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              <span>Putar Semua</span>
+            </button>
+            <button id="btn-shuffle-all" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition border border-slate-700/60 active:scale-95">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              <span>Acak</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Song List Container -->
+        <div id="songs-container" class="space-y-2">
+          <!-- Dynamic Song Items will be injected here -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="hidden glass-card rounded-2xl p-8 sm:p-12 text-center flex flex-col items-center justify-center my-4 border border-slate-800">
+          <div class="w-14 h-14 rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-center text-slate-400 mb-3 shadow-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
+          </div>
+          <h3 class="text-sm sm:text-base font-bold text-white mb-1">Belum Ada Lagu Tersimpan</h3>
+          <p class="text-xs text-slate-400 max-w-sm mb-4">Tempel link video TikTok atau YouTube pada kolom download di atas untuk mulai memutar lagu secara offline.</p>
+          <button id="btn-empty-add" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white text-xs font-bold shadow-lg shadow-emerald-500/25 transition transform active:scale-95">
+            + Tambah Lagu dari Link
+          </button>
+        </div>
+      </div>
+
+      <!-- ==================== VIEW 2: DEDICATED MP3 DECK PLAYER ==================== -->
+      <div id="view-mp3-deck" class="hidden space-y-6">
+        <!-- Physical DAP MP3 Deck Card -->
+        <div class="glass-card rounded-3xl p-6 sm:p-8 border border-slate-750/70 shadow-2xl relative overflow-hidden bg-gradient-to-b from-slate-900/90 via-dark-900/90 to-dark-950/90">
+          
+          <!-- Deck Top Header: Brand & Status LEDs -->
+          <div class="flex items-center justify-between pb-4 border-b border-slate-800/80 mb-6">
+            <div class="flex items-center gap-2.5">
+              <span class="w-3 h-3 rounded-full bg-brand-cyan shadow-lg shadow-brand-cyan/50 animate-pulse"></span>
+              <span class="text-xs font-black tracking-widest text-slate-300 uppercase font-mono">DIGITAL AUDIO PLAYER • DAP-X1</span>
+            </div>
+            <div class="flex items-center gap-3 text-[11px] font-mono text-slate-400">
+              <span class="px-2 py-0.5 rounded bg-dark-950 border border-slate-800 text-emerald-400 font-bold">100% OFFLINE</span>
+              <span id="deck-bitrate-badge" class="px-2 py-0.5 rounded bg-dark-950 border border-slate-800 text-brand-cyan">HI-RES AUDIO</span>
+            </div>
+          </div>
+
+          <!-- LCD Display Screen -->
+          <div class="bg-dark-950/90 border border-brand-cyan/30 rounded-2xl p-4 sm:p-5 mb-6 shadow-inner relative overflow-hidden">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="text-[10px] font-mono uppercase tracking-widest text-brand-cyan bg-brand-cyan/15 px-2 py-0.5 rounded">NOW PLAYING</span>
+                  <span id="deck-track-source" class="text-[10px] font-mono text-slate-400">IndexedDB Local Blob</span>
+                </div>
+                <h2 id="deck-title" class="text-lg sm:text-2xl font-black text-white tracking-tight truncate font-sans">Pilih lagu untuk memutar</h2>
+                <p id="deck-artist" class="text-xs sm:text-sm text-brand-400 font-medium truncate mt-0.5">ATune MP3 Player</p>
+              </div>
+
+              <!-- Time Counter LCD -->
+              <div class="text-right flex sm:flex-col justify-between items-end">
+                <span id="deck-time-lcd" class="text-xl sm:text-2xl font-mono font-extrabold text-brand-cyan tracking-wider">0:00 / 0:00</span>
+                <span id="deck-status-led" class="text-[10px] font-mono uppercase text-slate-400">READY</span>
+              </div>
+            </div>
+
+            <!-- Dynamic LCD Waveform Spectrum Canvas -->
+            <div class="w-full h-10 mt-3 pt-2 border-t border-slate-800/80 flex items-center justify-center">
+              <canvas id="deck-visualizer-canvas" width="480" height="36" class="w-full h-full"></canvas>
+            </div>
+          </div>
+
+          <!-- Center Turntable / Rotating Vinyl Disc -->
+          <div class="flex flex-col sm:flex-row items-center justify-center gap-8 my-6">
+            <!-- Vinyl Disc Container -->
+            <div class="relative w-56 h-56 sm:w-64 sm:h-64 rounded-full p-2 bg-gradient-to-tr from-slate-800 via-dark-900 to-slate-800 shadow-2xl border-4 border-slate-700/60 group">
+              <!-- Spinning Vinyl Grooves -->
+              <div id="deck-vinyl" class="w-full h-full rounded-full overflow-hidden relative shadow-inner bg-dark-950 flex items-center justify-center border-2 border-slate-800">
+                <!-- Outer Vinyl Lines -->
+                <div class="absolute inset-2 rounded-full border border-slate-750/30"></div>
+                <div class="absolute inset-6 rounded-full border border-slate-750/40"></div>
+                <div class="absolute inset-10 rounded-full border border-slate-750/30"></div>
+                
+                <!-- Center Album Artwork Disc -->
+                <div class="relative w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden border-4 border-dark-900 shadow-2xl">
+                  <img id="deck-cover" src="icons/icon-512.png" alt="Deck Cover" class="w-full h-full object-cover" />
+                  <div class="absolute inset-0 rounded-full bg-gradient-to-tr from-black/40 via-transparent to-white/20"></div>
+                  <!-- Spindle hole -->
+                  <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-dark-950 border-2 border-slate-500"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Side Tactile Controls (Speed, Loop, Volume) -->
+            <div class="w-full sm:w-64 space-y-4">
+              <!-- Volume Fader -->
+              <div class="glass-card p-3.5 rounded-2xl">
+                <div class="flex justify-between text-xs font-semibold text-slate-300 mb-1.5">
+                  <span>Volume Fader</span>
+                  <span id="deck-vol-label" class="font-mono text-brand-cyan">80%</span>
+                </div>
+                <input type="range" id="deck-volume-fader" min="0" max="1" step="0.01" value="0.8" class="w-full" />
+              </div>
+
+              <!-- Speed Controller -->
+              <div class="glass-card p-3.5 rounded-2xl">
+                <div class="flex justify-between text-xs font-semibold text-slate-300 mb-2">
+                  <span>Pitch & Kecepatan</span>
+                  <span id="deck-speed-label" class="font-mono text-brand-400">1.0x Normal</span>
+                </div>
+                <div class="grid grid-cols-5 gap-1 text-[11px] font-semibold text-center">
+                  <button class="deck-speed-btn py-1 rounded bg-dark-900 text-slate-400 hover:text-white" data-speed="0.75">0.75x</button>
+                  <button class="deck-speed-btn py-1 rounded bg-brand-500 text-white" data-speed="1.0">1.0x</button>
+                  <button class="deck-speed-btn py-1 rounded bg-dark-900 text-slate-400 hover:text-white" data-speed="1.25">1.25x</button>
+                  <button class="deck-speed-btn py-1 rounded bg-dark-900 text-slate-400 hover:text-white" data-speed="1.5">1.5x</button>
+                  <button class="deck-speed-btn py-1 rounded bg-dark-900 text-slate-400 hover:text-white" data-speed="2.0">2.0x</button>
+                </div>
+              </div>
+
+              <!-- Quick Audio FX shortcuts -->
+              <div class="flex gap-2">
+                <button id="deck-btn-open-eq" class="flex-1 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 text-center transition flex items-center justify-center gap-1.5">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-brand-cyan" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+                  <span>EQ</span>
+                </button>
+                <button id="deck-btn-open-lyrics" class="flex-1 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 text-center transition flex items-center justify-center gap-1.5">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                  <span>Lirik</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Deck Scrubber -->
+          <div class="mb-6">
+            <input type="range" id="deck-progress-bar" min="0" max="100" value="0" class="w-full h-2" />
+            <div class="flex justify-between text-xs font-mono text-slate-400 mt-1.5">
+              <span id="deck-curr-time">0:00</span>
+              <span id="deck-total-time">0:00</span>
+            </div>
+          </div>
+
+          <!-- Main Physical Playback Button Deck -->
+          <div class="flex items-center justify-center gap-4 sm:gap-6 pt-2">
+            <!-- Rewind 10s -->
+            <button id="deck-btn-rewind" class="w-11 h-11 rounded-2xl bg-dark-900 hover:bg-slate-800 border border-slate-750 text-slate-300 hover:text-white flex items-center justify-center font-bold text-xs transition active:scale-95 shadow" title="Mundur 10 Detik">
+              -10s
+            </button>
+
+            <!-- Prev -->
+            <button id="deck-btn-prev" class="w-12 h-12 rounded-2xl bg-dark-900 hover:bg-slate-800 border border-slate-750 text-slate-200 hover:text-white flex items-center justify-center transition active:scale-95 shadow" title="Lagu Sebelumnya">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+            </button>
+
+            <!-- Large Center Play/Pause Deck Button -->
+            <button id="deck-btn-play-pause" class="w-18 h-18 sm:w-20 sm:h-20 rounded-full bg-gradient-to-tr from-brand-500 via-brand-cyan to-brand-violet text-white flex items-center justify-center shadow-xl shadow-brand-500/40 border-4 border-slate-800 transition transform hover:scale-105 active:scale-95">
+              <svg id="deck-icon-play" xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 fill-current translate-x-0.5" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              <svg id="deck-icon-pause" xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 fill-current hidden" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+            </button>
+
+            <!-- Next -->
+            <button id="deck-btn-next" class="w-12 h-12 rounded-2xl bg-dark-900 hover:bg-slate-800 border border-slate-750 text-slate-200 hover:text-white flex items-center justify-center transition active:scale-95 shadow" title="Lagu Selanjutnya">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+            </button>
+
+            <!-- Forward 10s -->
+            <button id="deck-btn-forward" class="w-11 h-11 rounded-2xl bg-dark-900 hover:bg-slate-800 border border-slate-750 text-slate-300 hover:text-white flex items-center justify-center font-bold text-xs transition active:scale-95 shadow" title="Maju 10 Detik">
+              +10s
+            </button>
+          </div>
+
+        </div>
+
+        <!-- Now Playing Queue List Below Deck -->
+        <div class="glass-card rounded-2xl p-5 border border-slate-800">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+              <span>Antrean Lagu (Playlist Queue)</span>
+            </h3>
+            <span id="deck-queue-count" class="text-xs text-slate-400 font-mono">0 Lagu</span>
+          </div>
+          <div id="deck-queue-container" class="space-y-1.5 max-h-60 overflow-y-auto pr-1">
+            <!-- Injected Queue items -->
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== VIEW 3: WISHLIST & AUTO-DOWNLOAD ==================== -->
+      <div id="view-wishlist" class="hidden space-y-6">
+        <!-- Connectivity Status Banner -->
+        <div id="wishlist-conn-banner" class="glass-card rounded-2xl p-4 border border-emerald-500/30 bg-emerald-950/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <div id="wishlist-conn-dot" class="w-3.5 h-3.5 rounded-full bg-emerald-400 shadow-lg shadow-emerald-400/50 animate-pulse"></div>
+            <div>
+              <h4 id="wishlist-conn-title" class="text-xs sm:text-sm font-bold text-slate-100">Status: Terhubung ke Internet (Online)</h4>
+              <p id="wishlist-conn-desc" class="text-xs text-slate-400">Lagu baru yang Anda tambahkan akan otomatis ter-download ke database offline.</p>
+            </div>
+          </div>
+          <button id="btn-sync-all-wishlist" class="px-4 py-2 rounded-xl bg-gradient-to-r from-brand-500 to-emerald-600 hover:from-brand-400 hover:to-emerald-500 text-white text-xs font-bold shadow-md shadow-brand-500/25 transition active:scale-95 flex items-center gap-2 whitespace-nowrap">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            <span>Unduh Semua Antrean</span>
+          </button>
+        </div>
+
+        <!-- Google Drive Connected Folder Quick Card -->
+        <div class="glass-card rounded-2xl p-5 border border-amber-500/30 bg-amber-950/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <div class="w-11 h-11 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 00-9.78 2.096A4.001 4.001 0 003 15z"/></svg>
+            </div>
+            <div>
+              <h4 class="text-sm font-bold text-white">Folder Google Drive Utama Terhubung</h4>
+              <p class="text-xs text-slate-400">Folder ID: <span class="font-mono text-amber-300">1BcMu2RPS-ywwClvbArZl8AX_xXiwv4DU</span></p>
+            </div>
+          </div>
+          <a href="https://drive.google.com/drive/folders/1BcMu2RPS-ywwClvbArZl8AX_xXiwv4DU?usp=sharing" target="_blank" rel="noopener noreferrer" class="px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-semibold transition flex items-center gap-1.5 whitespace-nowrap">
+            <span>Buka Folder Google Drive</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          </a>
+        </div>
+
+        <!-- Add to Wishlist Form -->
+        <div class="glass-card rounded-2xl p-5 border border-slate-800">
+          <h3 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            <span>Tambah Lagu / Link ke Wishlist</span>
+          </h3>
+
+          <div class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Link Audio / Google Drive / GitHub</label>
+              <input type="url" id="input-wishlist-url" placeholder="https://drive.google.com/file/d/... atau https://raw.githubusercontent.com/..." class="w-full px-3.5 py-2.5 bg-dark-900 border border-slate-750 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-400 transition" />
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Judul Lagu (Opsional)</label>
+                <input type="text" id="input-wishlist-title" placeholder="Misal: Bohemian Rhapsody" class="w-full px-3 py-2 bg-dark-900 border border-slate-750 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-brand-400" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Artis (Opsional)</label>
+                <input type="text" id="input-wishlist-artist" placeholder="Misal: Queen" class="w-full px-3 py-2 bg-dark-900 border border-slate-750 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-brand-400" />
+              </div>
+            </div>
+
+            <button id="btn-add-wishlist" class="w-full py-2.5 rounded-xl bg-brand-500 hover:bg-brand-400 text-white text-xs font-bold shadow-md shadow-brand-500/25 transition active:scale-98 flex items-center justify-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              <span>Simpan ke Wishlist & Unduh Otomatis</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Wishlist Items List Container -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between px-1">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Daftar Antrean Wishlist</h3>
+            <span id="wishlist-total-count" class="text-xs text-slate-400 font-mono">0 Item</span>
+          </div>
+
+          <div id="wishlist-container" class="space-y-2.5">
+            <!-- Dynamic Wishlist Cards injected here -->
+          </div>
+
+          <!-- Empty Wishlist state -->
+          <div id="wishlist-empty" class="glass-card rounded-2xl p-8 text-center hidden">
+            <p class="text-xs text-slate-400">Belum ada lagu di Wishlist. Masukkan link Google Drive atau URL audio di atas.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== VIEW 4: DEDICATED SETTINGS VIEW ==================== -->
+      <div id="view-settings" class="hidden space-y-6">
+        
+        <!-- Google Drive Integration Section -->
+        <div class="glass-card rounded-2xl p-6 border border-slate-800">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 00-9.78 2.096A4.001 4.001 0 003 15z"/></svg>
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-white">Integrasi Folder Google Drive</h3>
+              <p class="text-xs text-slate-400">Tautkan folder Google Drive untuk sumber lagu offline Anda</p>
+            </div>
+          </div>
+
+          <div class="space-y-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1.5">URL Folder Google Drive Target</label>
+              <div class="flex gap-2">
+                <input type="url" id="setting-gdrive-folder" value="https://drive.google.com/drive/folders/1BcMu2RPS-ywwClvbArZl8AX_xXiwv4DU?usp=sharing" class="flex-1 px-3.5 py-2.5 bg-dark-900 border border-slate-750 rounded-xl text-xs text-slate-200 font-mono focus:outline-none focus:border-brand-400" />
+                <a href="https://drive.google.com/drive/folders/1BcMu2RPS-ywwClvbArZl8AX_xXiwv4DU?usp=sharing" target="_blank" rel="noopener noreferrer" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 flex items-center gap-1.5 transition whitespace-nowrap">
+                  <span>Buka Folder</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                </a>
+              </div>
+              <p class="text-[11px] text-slate-500 mt-1">Lagu hasil ekstraksi TikTok & YouTube akan otomatis masuk ke folder ini.</p>
+            </div>
+
+            <!-- Google Apps Script Auto-Upload Webhook -->
+            <div class="p-4 rounded-xl bg-dark-900/90 border border-amber-500/30 space-y-3">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+                  <span class="text-xs font-bold text-white uppercase tracking-wider">Bridge Auto-Upload (Google Apps Script)</span>
+                </div>
+                <span id="gas-status-badge" class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Terhubung ke Drive</span>
+              </div>
+
+              <p class="text-xs text-slate-300 leading-relaxed">
+                Setiap lagu yang diekstrak dari TikTok & YouTube otomatis diunggah langsung ke folder Google Drive target Anda tanpa login ulang.
+              </p>
+
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-400 mb-1">URL Web App (script.google.com)</label>
+                <div class="flex gap-2">
+                  <input type="url" id="setting-gas-url" value="https://script.google.com/macros/s/AKfycbyr3tSDmkxFs2Ls8abC5GPnAmC7mi-jN2hKVAt_ooncLnRmeL4nEGUE-HUJbilmBV5rbQ/exec" class="flex-1 px-3 py-2 bg-dark-950 border border-slate-750 rounded-xl text-xs text-slate-200 font-mono focus:outline-none focus:border-amber-400" />
+                  <button id="btn-save-gas-url" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition">
+                    Simpan
+                  </button>
+                </div>
+              </div>
+
+              <div class="flex flex-col sm:flex-row gap-2 pt-1">
+                <button id="btn-copy-gas-code" class="flex-1 py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 flex items-center justify-center gap-1.5 transition border border-slate-700">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+                  <span>Salin Kode Google Apps Script</span>
+                </button>
+                <a href="https://script.google.com" target="_blank" rel="noopener noreferrer" class="py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 flex items-center justify-center gap-1.5 transition border border-slate-700 text-center">
+                  <span>Buka script.google.com</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Auto-Download Engine Settings -->
+        <div class="glass-card rounded-2xl p-6 border border-slate-800">
+          <h3 class="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            <span>Otomatisasi Unduhan (Auto-Downloader)</span>
+          </h3>
+
+          <div class="space-y-3">
+            <label class="flex items-center justify-between p-3 rounded-xl bg-dark-900/60 border border-slate-800 cursor-pointer">
+              <div>
+                <span class="text-xs font-semibold text-slate-200 block">Unduh Otomatis Saat Ada Internet</span>
+                <span class="text-[11px] text-slate-400">Lagu yang ada di antrean wishlist akan otomatis diunduh saat terhubung ke jaringan.</span>
+              </div>
+              <input type="checkbox" id="setting-auto-dl" checked class="w-4 h-4 rounded text-brand-500 focus:ring-brand-400 bg-slate-800 border-slate-700" />
+            </label>
+
+            <label class="flex items-center justify-between p-3 rounded-xl bg-dark-900/60 border border-slate-800 cursor-pointer">
+              <div>
+                <span class="text-xs font-semibold text-slate-200 block">Notifikasi Suara & Popup Saat Selesai</span>
+                <span class="text-[11px] text-slate-400">Tampilkan notifikasi berhasil saat unduhan selesai disimpan ke database.</span>
+              </div>
+              <input type="checkbox" id="setting-notify-dl" checked class="w-4 h-4 rounded text-brand-500 focus:ring-brand-400 bg-slate-800 border-slate-700" />
+            </label>
+          </div>
+        </div>
+
+        <!-- Offline Storage Monitoring -->
+        <div class="glass-card rounded-2xl p-6 border border-slate-800">
+          <h3 class="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-brand-cyan" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/></svg>
+            <span>Penyimpanan Offline (IndexedDB)</span>
+          </h3>
+
+          <div class="space-y-4">
+            <div class="bg-dark-900/80 p-4 rounded-xl border border-slate-800">
+              <div class="flex justify-between text-xs font-semibold mb-1.5">
+                <span class="text-slate-300">Penyimpanan Terpakai:</span>
+                <span id="storage-used-text" class="font-mono text-brand-cyan">0 MB</span>
+              </div>
+              <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                <div id="storage-progress-bar" class="bg-gradient-to-r from-brand-cyan to-brand-500 h-2 rounded-full" style="width: 5%"></div>
+              </div>
+              <p class="text-[11px] text-slate-500 mt-2">Audio tersimpan permanen di memori browser perangkat ini, tidak terhapus saat offline.</p>
+            </div>
+
+            <!-- Backup and Reset Actions -->
+            <div class="flex flex-col sm:flex-row gap-3">
+              <button id="btn-settings-export" class="flex-1 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition text-center">
+                Ekspor Cadangan Playlist (.json)
+              </button>
+              <label class="flex-1 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition text-center cursor-pointer">
+                Pulihkan dari File .json
+                <input type="file" id="settings-import-json" accept=".json" class="hidden" />
+              </label>
+              <button id="btn-settings-clear" class="py-2.5 px-4 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-semibold border border-rose-500/20 transition">
+                Bersihkan Database
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cookie & Web Cache Cleanup Section -->
+        <div class="glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-violet-500/20 text-violet-400 flex items-center justify-center border border-violet-500/30">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-white">Pembersihan Cookie & Cache Khusus Web Ini</h3>
+              <p class="text-xs text-slate-400">Hapus cookie, sesi, dan cache browser khusus untuk web ini</p>
+            </div>
+          </div>
+
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Fitur ini hanya menghapus cookie dan data sesi browser yang disimpan khusus untuk website ini (<span class="font-mono text-cyan-300">document.cookie & sessionStorage</span>). File lagu yang tersimpan di database offline Anda tidak akan terhapus.
+          </p>
+
+          <div class="flex flex-col sm:flex-row gap-3">
+            <button id="btn-clear-site-cookies" class="flex-1 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700/80 transition flex items-center justify-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <span>Hapus Cookie Web Ini</span>
+            </button>
+            <button id="btn-clear-site-cache" class="flex-1 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700/80 transition flex items-center justify-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-brand-cyan" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              <span>Hapus Cookie + Cache & Reload</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- GitHub Hosting Guide Section -->
+        <div class="glass-card rounded-2xl p-6 border border-cyan-500/30 bg-cyan-950/10 space-y-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center border border-cyan-500/30">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+            </div>
+            <div>
+              <h4 class="text-sm font-bold text-white">Hosting Aplikasi di GitHub (GitHub Pages)</h4>
+              <p class="text-xs text-slate-400">GitHub digunakan khusus untuk meng-onlinekan aplikasi web PWA ini</p>
+            </div>
+          </div>
+
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Aplikasi ini sudah dikonfigurasi dengan otomatisasi deployment (<span class="font-mono text-cyan-300">.github/workflows/deploy.yml</span>). 
+            File lagu Anda tetap disimpan di Google Drive, sedangkan GitHub bertindak sebagai web hosting gratis.
+          </p>
+
+          <div class="bg-dark-900/90 p-3.5 rounded-xl border border-slate-800 text-xs font-mono text-slate-300 space-y-1.5">
+            <p class="text-slate-500 font-sans text-[11px] font-semibold">Langkah upload ke GitHub:</p>
+            <p class="text-brand-400">git add .</p>
+            <p class="text-brand-400">git commit -m "Deploy music player PWA"</p>
+            <p class="text-brand-400">git push origin main</p>
+          </div>
+          <p class="text-[11px] text-slate-400">Setelah di-push, buka repository di GitHub: <strong>Settings → Pages → Source: GitHub Actions</strong>. Aplikasi Anda langsung online dan bisa di-install di HP!</p>
+        </div>
+
+        <!-- PWA Status & Theme -->
+        <div class="glass-card rounded-2xl p-6 border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h4 class="text-sm font-bold text-white">Progressive Web App (PWA)</h4>
+            <p class="text-xs text-slate-400">Aplikasi ini dapat diinstal langsung ke home screen smartphone atau desktop Anda.</p>
+          </div>
+          <button id="btn-settings-install-pwa" class="px-5 py-2.5 rounded-xl bg-brand-500/20 hover:bg-brand-500/30 text-brand-300 border border-brand-500/40 text-xs font-bold transition">
+            Instal Aplikasi Sekarang
+          </button>
+        </div>
+
+      </div>
+
+    </section>
+  </main>
+
+  <!-- Persistent Bottom Mini Player -->
+  <footer id="mini-player" class="fixed bottom-0 inset-x-0 z-40 glass-panel border-t border-slate-800/80 px-4 py-3 flex items-center justify-between gap-3 shadow-2xl backdrop-blur-xl">
+    
+    <!-- Left: Track info with animated artwork -->
+    <div class="flex items-center gap-3 min-w-0 max-w-[40%] sm:max-w-[30%] cursor-pointer group" id="btn-expand-player">
+      <div class="relative w-12 h-12 rounded-xl overflow-hidden bg-slate-800 flex-shrink-0 shadow-md border border-slate-700/50">
+        <img id="mini-cover" src="icons/icon-192.png" alt="Cover" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+        <div id="mini-spin-disc" class="absolute inset-0 rounded-full border border-white/20 opacity-0 transition-opacity"></div>
+      </div>
+      <div class="min-w-0">
+        <h4 id="mini-title" class="text-xs sm:text-sm font-semibold text-slate-100 truncate group-hover:text-brand-400 transition">Pilih lagu untuk memutar</h4>
+        <p id="mini-artist" class="text-[11px] text-slate-400 truncate">ATune Music Player</p>
+      </div>
+    </div>
+
+    <!-- Center: Main Playback Controls & Progress Bar -->
+    <div class="flex-1 max-w-xl flex flex-col items-center gap-1.5 px-2">
+      <!-- Buttons -->
+      <div class="flex items-center gap-3 sm:gap-6">
+        <!-- Shuffle button -->
+        <button id="btn-shuffle" class="text-slate-400 hover:text-white transition p-1" title="Acak (Shuffle)">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        </button>
+
+        <!-- Previous button -->
+        <button id="btn-prev" class="text-slate-300 hover:text-white transition p-1" title="Lagu Sebelumnya">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+        </button>
+
+        <!-- Play / Pause Main Button -->
+        <button id="btn-play-pause" class="w-10 h-10 rounded-full bg-brand-500 hover:bg-brand-400 text-white flex items-center justify-center shadow-lg shadow-brand-500/30 transition transform active:scale-95" title="Putar / Jeda">
+          <svg id="icon-play" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 fill-current translate-x-0.5" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <svg id="icon-pause" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 fill-current hidden" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+        </button>
+
+        <!-- Next button -->
+        <button id="btn-next" class="text-slate-300 hover:text-white transition p-1" title="Lagu Selanjutnya">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+        </button>
+
+        <!-- Repeat button -->
+        <button id="btn-repeat" class="text-slate-400 hover:text-white transition p-1 relative" title="Ulang (Repeat)">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          <span id="repeat-badge" class="hidden absolute -top-1 -right-1 text-[8px] font-black bg-brand-500 text-white rounded-full w-3.5 h-3.5 flex items-center justify-center">1</span>
+        </button>
+      </div>
+
+      <!-- Scrubber & Time -->
+      <div class="w-full flex items-center gap-2">
+        <span id="curr-time" class="text-[11px] font-mono text-slate-400 w-9 text-right">0:00</span>
+        <input type="range" id="progress-bar" min="0" max="100" value="0" class="flex-1" />
+        <span id="total-time" class="text-[11px] font-mono text-slate-400 w-9">0:00</span>
+      </div>
+    </div>
+
+    <!-- Right: Volume, Lyrics & Fullscreen Expand -->
+    <div class="hidden sm:flex items-center gap-3 min-w-[20%] justify-end">
+      <!-- Lyrics quick toggle -->
+      <button id="btn-quick-lyrics" class="p-2 text-slate-400 hover:text-brand-400 transition" title="Tampilkan Lirik">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      </button>
+
+      <!-- Volume control -->
+      <div class="flex items-center gap-2 group">
+        <button id="btn-mute" class="text-slate-400 hover:text-white transition">
+          <svg id="icon-vol-high" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+          <svg id="icon-vol-mute" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 hidden text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/></svg>
+        </button>
+        <input type="range" id="volume-bar" min="0" max="1" step="0.01" value="0.8" class="w-20" />
+      </div>
+
+      <!-- Expand full player drawer button -->
+      <button id="btn-fullview-toggle" class="p-2 text-slate-400 hover:text-white transition" title="Buka Layar Penuh">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+      </button>
+    </div>
+  </footer>
+
+  <!-- ==================== MODAL: DOWNLOADER & CLOUD SYNC ==================== -->
+  <div id="modal-downloader" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden opacity-0 transition-opacity duration-200">
+    <div class="glass-modal w-full max-w-xl rounded-3xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+      
+      <!-- Close button -->
+      <button class="modal-close absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+
+      <div class="flex items-center gap-3 mb-5">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-500/20 via-brand-500/20 to-brand-cyan/20 text-brand-400 flex items-center justify-center border border-brand-500/30">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold text-white flex items-center gap-2">
+            <span>Auto-Downloader Media</span>
+          </h3>
+          <p class="text-xs text-slate-400">Tempel link video/sound, audio otomatis diekstrak & masuk ke Google Drive</p>
+        </div>
+      </div>
+
+
+      <!-- Tabs: Cloud Downloader vs Local File Upload -->
+      <div class="flex p-1 bg-dark-900 rounded-xl mb-5 border border-slate-800">
+        <button id="tab-dl-cloud" class="flex-1 py-2 text-xs font-semibold rounded-lg bg-brand-500 text-white transition">Auto-Download dari Link (TikTok / YT / Drive)</button>
+        <button id="tab-dl-local" class="flex-1 py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-slate-200 transition">Import File Audio Lokal</button>
+      </div>
+
+      <!-- TAB 1: Cloud / Link Downloader -->
+      <div id="section-dl-cloud" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1.5">
+            Link Video TikTok, YouTube, atau Drive
+          </label>
+          
+          <div class="relative">
+            <input type="url" id="input-dl-url" placeholder="Tempel link TikTok (vt.tiktok.com) atau YouTube di sini..." class="w-full pl-3.5 pr-24 py-3 bg-dark-900 border border-slate-750 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-400 transition shadow-inner" />
+            <button type="button" id="btn-modal-paste" class="absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition flex items-center gap-1">
+              📋 <span>Tempel</span>
+            </button>
+          </div>
+
+          <!-- 3 Visual Steps (Sangat Mudah Dipahami) -->
+          <div class="grid grid-cols-3 gap-2 mt-3 text-center p-3 rounded-xl bg-slate-900/70 border border-slate-800/80">
+            <div class="flex flex-col items-center">
+              <span class="w-6 h-6 rounded-full bg-rose-500/20 text-rose-300 flex items-center justify-center text-xs font-bold mb-1">1</span>
+              <span class="text-[11px] font-semibold text-slate-200">Copy Link</span>
+              <span class="text-[10px] text-slate-500">TikTok / YouTube</span>
+            </div>
+            <div class="flex flex-col items-center border-x border-slate-800">
+              <span class="w-6 h-6 rounded-full bg-brand-500/20 text-brand-300 flex items-center justify-center text-xs font-bold mb-1">2</span>
+              <span class="text-[11px] font-semibold text-slate-200">Klik Download</span>
+              <span class="text-[10px] text-slate-500">Otomatis Ekstrak</span>
+            </div>
+            <div class="flex flex-col items-center">
+              <span class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center text-xs font-bold mb-1">3</span>
+              <span class="text-[11px] font-semibold text-emerald-300">Siap Offline</span>
+              <span class="text-[10px] text-slate-500">Masuk ke Drive</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Collapsible Advanced Details (Judul/Artis Manual Jika Diinginkan) -->
+        <details class="text-xs text-slate-400 bg-dark-900/60 p-3 rounded-xl border border-slate-800">
+          <summary class="cursor-pointer text-slate-400 hover:text-slate-200 font-semibold select-none flex items-center justify-between">
+            <span>⚙️ Opsi Lanjutan (Ubah Judul / Artis Manual)</span>
+            <span class="text-[10px] text-slate-500">Buka ▼</span>
+          </summary>
+          <div class="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-800">
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-400 mb-1">Judul Lagu</label>
+              <input type="text" id="input-dl-title" placeholder="Otomatis dari video" class="w-full px-3 py-2 bg-dark-950 border border-slate-750 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-brand-400" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-400 mb-1">Artis</label>
+              <input type="text" id="input-dl-artist" placeholder="Otomatis dari video" class="w-full px-3 py-2 bg-dark-950 border border-slate-750 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-brand-400" />
+            </div>
+          </div>
+        </details>
+
+        <!-- Multi-Step Download Progress Box -->
+        <div id="dl-progress-box" class="hidden space-y-2 bg-dark-900 p-3.5 rounded-xl border border-slate-800">
+          <div class="flex justify-between text-xs font-semibold text-slate-300">
+            <span id="dl-status-text" class="flex items-center gap-1.5">
+              <svg class="animate-spin -ml-1 mr-1 h-3.5 w-3.5 text-brand-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+              <span>Memproses link media...</span>
+            </span>
+            <span id="dl-percent-text" class="font-mono text-brand-cyan">0%</span>
+          </div>
+          
+          <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+            <div id="dl-progress-bar" class="bg-gradient-to-r from-rose-500 via-brand-500 to-brand-cyan h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+
+          <div class="flex justify-between text-[10px] text-slate-500 pt-1 font-mono">
+            <span>1. Ekstrak Audio</span>
+            <span>2. Simpan Offline</span>
+            <span>3. Masuk Google Drive</span>
+          </div>
+        </div>
+
+        <button id="btn-start-download" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-rose-600 via-brand-500 to-emerald-600 hover:from-rose-500 hover:to-emerald-500 text-white text-sm font-bold shadow-lg shadow-brand-500/25 transition active:scale-98 flex items-center justify-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          <span>Ekstrak, Simpan Offline & Masuk ke Drive</span>
+        </button>
+      </div>
+
+      <!-- TAB 2: Local File Upload -->
+      <div id="section-dl-local" class="hidden space-y-4">
+        <div id="drop-zone" class="border-2 border-dashed border-slate-750 hover:border-brand-500/60 rounded-2xl p-8 text-center bg-dark-900/50 hover:bg-dark-900 transition cursor-pointer flex flex-col items-center justify-center">
+          <input type="file" id="file-input" multiple accept="audio/*" class="hidden" />
+          <div class="w-14 h-14 rounded-2xl bg-brand-500/15 text-brand-400 flex items-center justify-center mb-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+          </div>
+          <p class="text-sm font-semibold text-slate-200 mb-1">Pilih File Musik atau Geser ke Sini</p>
+          <p class="text-xs text-slate-400 mb-4">Mendukung banyak file sekaligus (MP3, WAV, FLAC, M4A). Cover art & tag ID3 dibaca otomatis.</p>
+          <div class="flex gap-2">
+            <button id="btn-browse-files" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition">
+              Pilih File
+            </button>
+          </div>
+        </div>
+
+        <div id="local-upload-status" class="hidden text-xs text-center font-medium text-brand-400">
+          Memproses dan mengekstrak cover art...
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: EQUALIZER & AUDIO FX ==================== -->
+  <div id="modal-eq" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden opacity-0 transition-opacity duration-200">
+    <div class="glass-modal w-full max-w-lg rounded-3xl p-6 shadow-2xl relative">
+      
+      <!-- Close button -->
+      <button class="modal-close absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-10 h-10 rounded-xl bg-brand-cyan/20 text-brand-cyan flex items-center justify-center border border-brand-cyan/30">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold text-white">Equalizer 5-Band</h3>
+          <p class="text-xs text-slate-400">Atur profil suara & kecepatan putar sesuai selera Anda</p>
+        </div>
+      </div>
+
+      <!-- Presets Selector -->
+      <div class="mb-6">
+        <label class="block text-xs font-semibold text-slate-400 mb-2">Pilihan Preset Suara</label>
+        <div class="grid grid-cols-4 sm:grid-cols-7 gap-1.5">
+          <button class="eq-preset-btn px-2 py-1.5 rounded-lg text-xs font-semibold bg-brand-500 text-white text-center transition" data-preset="flat">Flat</button>
+          <button class="eq-preset-btn px-2 py-1.5 rounded-lg text-xs font-semibold bg-dark-900 text-slate-400 hover:text-slate-200 text-center transition" data-preset="bassBoost">Bass</button>
+          <button class="eq-preset-btn px-2 py-1.5 rounded-lg text-xs font-semibold bg-dark-900 text-slate-400 hover:text-slate-200 text-center transition" data-preset="trebleBoost">Treble</button>
+          <button class="eq-preset-btn px-2 py-1.5 rounded-lg text-xs font-semibold bg-dark-900 text-slate-400 hover:text-slate-200 text-center transition" data-preset="vocal">Vocal</button>
+          <button class="eq-preset-btn px-2 py-1.5 rounded-lg text-xs font-semibold bg-dark-900 text-slate-400 hover:text-slate-200 text-center transition" data-preset="rock">Rock</button>
+          <button class="eq-preset-btn px-2 py-1.5 rounded-lg text-xs font-semibold bg-dark-900 text-slate-400 hover:text-slate-200 text-center transition" data-preset="pop">Pop</button>
+          <button class="eq-preset-btn px-2 py-1.5 rounded-lg text-xs font-semibold bg-dark-900 text-slate-400 hover:text-slate-200 text-center transition" data-preset="electronic">EDM</button>
+        </div>
+      </div>
+
+      <!-- 5-Band Sliders -->
+      <div class="glass-card rounded-2xl p-4 mb-6">
+        <div class="grid grid-cols-5 gap-3 text-center">
+          <!-- Band 60Hz -->
+          <div class="flex flex-col items-center gap-2">
+            <span class="text-[11px] font-mono text-slate-400">+12dB</span>
+            <input type="range" class="eq-slider h-28 [writing-mode:vertical-lr] [direction:rtl]" data-band="0" min="-12" max="12" step="1" value="0" />
+            <span class="text-[11px] font-mono text-slate-400">-12dB</span>
+            <span class="text-xs font-bold text-brand-400">60Hz</span>
+          </div>
+
+          <!-- Band 250Hz -->
+          <div class="flex flex-col items-center gap-2">
+            <span class="text-[11px] font-mono text-slate-400">+12dB</span>
+            <input type="range" class="eq-slider h-28 [writing-mode:vertical-lr] [direction:rtl]" data-band="1" min="-12" max="12" step="1" value="0" />
+            <span class="text-[11px] font-mono text-slate-400">-12dB</span>
+            <span class="text-xs font-bold text-brand-400">250Hz</span>
+          </div>
+
+          <!-- Band 1kHz -->
+          <div class="flex flex-col items-center gap-2">
+            <span class="text-[11px] font-mono text-slate-400">+12dB</span>
+            <input type="range" class="eq-slider h-28 [writing-mode:vertical-lr] [direction:rtl]" data-band="2" min="-12" max="12" step="1" value="0" />
+            <span class="text-[11px] font-mono text-slate-400">-12dB</span>
+            <span class="text-xs font-bold text-brand-400">1kHz</span>
+          </div>
+
+          <!-- Band 4kHz -->
+          <div class="flex flex-col items-center gap-2">
+            <span class="text-[11px] font-mono text-slate-400">+12dB</span>
+            <input type="range" class="eq-slider h-28 [writing-mode:vertical-lr] [direction:rtl]" data-band="3" min="-12" max="12" step="1" value="0" />
+            <span class="text-[11px] font-mono text-slate-400">-12dB</span>
+            <span class="text-xs font-bold text-brand-400">4kHz</span>
+          </div>
+
+          <!-- Band 14kHz -->
+          <div class="flex flex-col items-center gap-2">
+            <span class="text-[11px] font-mono text-slate-400">+12dB</span>
+            <input type="range" class="eq-slider h-28 [writing-mode:vertical-lr] [direction:rtl]" data-band="4" min="-12" max="12" step="1" value="0" />
+            <span class="text-[11px] font-mono text-slate-400">-12dB</span>
+            <span class="text-xs font-bold text-brand-400">14kHz</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Playback Speed -->
+      <div>
+        <label class="block text-xs font-semibold text-slate-400 mb-2">Kecepatan Putar (Playback Speed)</label>
+        <div class="grid grid-cols-6 gap-2">
+          <button class="speed-btn py-1.5 rounded-lg text-xs font-semibold bg-dark-900 text-slate-400 hover:text-white transition" data-speed="0.5">0.5x</button>
+          <button class="speed-btn py-1.5 rounded-lg text-xs font-semibold bg-dark-900 text-slate-400 hover:text-white transition" data-speed="0.75">0.75x</button>
+          <button class="speed-btn py-1.5 rounded-lg text-xs font-semibold bg-brand-500 text-white transition" data-speed="1.0">1.0x</button>
+          <button class="speed-btn py-1.5 rounded-lg text-xs font-semibold bg-dark-900 text-slate-400 hover:text-white transition" data-speed="1.25">1.25x</button>
+          <button class="speed-btn py-1.5 rounded-lg text-xs font-semibold bg-dark-900 text-slate-400 hover:text-white transition" data-speed="1.5">1.5x</button>
+          <button class="speed-btn py-1.5 rounded-lg text-xs font-semibold bg-dark-900 text-slate-400 hover:text-white transition" data-speed="2.0">2.0x</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: SLEEP TIMER ==================== -->
+  <div id="modal-sleeptimer" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden opacity-0 transition-opacity duration-200">
+    <div class="glass-modal w-full max-w-sm rounded-3xl p-6 shadow-2xl relative text-center">
+      
+      <button class="modal-close absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+
+      <div class="w-12 h-12 rounded-2xl bg-violet-500/20 text-violet-400 flex items-center justify-center mx-auto mb-3 border border-violet-500/30">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+      </div>
+      <h3 class="text-lg font-bold text-white mb-1">Sleep Timer Otomatis</h3>
+      <p class="text-xs text-slate-400 mb-6">Lagu akan berhenti dengan fade-out volume lembut ketika waktu habis.</p>
+
+      <div class="space-y-2.5 mb-5">
+        <button class="timer-opt-btn w-full py-2.5 rounded-xl bg-slate-800/80 hover:bg-violet-600/30 text-xs font-semibold text-slate-200 border border-slate-700/60 transition" data-mins="15">15 Menit</button>
+        <button class="timer-opt-btn w-full py-2.5 rounded-xl bg-slate-800/80 hover:bg-violet-600/30 text-xs font-semibold text-slate-200 border border-slate-700/60 transition" data-mins="30">30 Menit</button>
+        <button class="timer-opt-btn w-full py-2.5 rounded-xl bg-slate-800/80 hover:bg-violet-600/30 text-xs font-semibold text-slate-200 border border-slate-700/60 transition" data-mins="45">45 Menit</button>
+        <button class="timer-opt-btn w-full py-2.5 rounded-xl bg-slate-800/80 hover:bg-violet-600/30 text-xs font-semibold text-slate-200 border border-slate-700/60 transition" data-mins="60">60 Menit (1 Jam)</button>
+        <button id="btn-cancel-timer" class="w-full py-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-xs font-semibold text-rose-300 border border-rose-500/30 transition">Matikan Timer</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: SETTINGS & BACKUP ==================== -->
+  <div id="modal-settings" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden opacity-0 transition-opacity duration-200">
+    <div class="glass-modal w-full max-w-md rounded-3xl p-6 shadow-2xl relative">
+      
+      <button class="modal-close absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+
+      <div class="flex items-center gap-3 mb-5">
+        <div class="w-10 h-10 rounded-xl bg-slate-800 text-slate-200 flex items-center justify-center border border-slate-700">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold text-white">Pengaturan & Backup</h3>
+          <p class="text-xs text-slate-400">Kelola database offline & pencadangan playlist</p>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <!-- Backup & Export -->
+        <div class="glass-card p-4 rounded-2xl">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Cadangan Playlist (JSON)</h4>
+          <p class="text-xs text-slate-400 mb-3">Ekspor daftar lagu dan riwayat favorit untuk disimpan di Google Drive sebagai arsip cadangan.</p>
+          <div class="flex gap-2">
+            <button id="btn-export-db" class="flex-1 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition">
+              Ekspor Metadata
+            </button>
+            <label class="flex-1 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition text-center cursor-pointer">
+              Pulihkan JSON
+              <input type="file" id="input-import-json" accept=".json" class="hidden" />
+            </label>
+          </div>
+        </div>
+
+        <!-- Storage Info -->
+        <div class="glass-card p-4 rounded-2xl text-xs text-slate-400 space-y-2">
+          <div class="flex justify-between">
+            <span>Database:</span>
+            <span class="text-slate-200 font-mono">IndexedDB (Lokal HP/PC)</span>
+          </div>
+          <div class="flex justify-between">
+            <span>Status PWA:</span>
+            <span class="text-emerald-400 font-semibold" id="pwa-status-text">Siap Offline</span>
+          </div>
+        </div>
+
+        <!-- Clear Cookies Button -->
+        <button id="btn-modal-clear-cookies" class="w-full py-2.5 rounded-xl bg-violet-500/10 hover:bg-violet-500/20 text-violet-300 text-xs font-semibold border border-violet-500/20 transition">
+          Hapus Cookie & Cache Web Ini
+        </button>
+
+        <!-- Clean Database -->
+        <button id="btn-clear-all" class="w-full py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-semibold border border-rose-500/20 transition">
+          Hapus Semua Lagu Offline
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================== EXPANDED FULLSCREEN PLAYER DRAWER ==================== -->
+  <div id="drawer-player" class="fixed inset-0 z-50 bg-dark-950/95 backdrop-blur-2xl flex flex-col p-6 overflow-y-auto transform translate-y-full transition-transform duration-300 ease-out">
+    
+    <!-- Top Bar: Minimize button & Title -->
+    <div class="flex items-center justify-between max-w-2xl w-full mx-auto mb-6">
+      <button id="btn-collapse-player" class="p-2.5 rounded-full bg-slate-850 hover:bg-slate-850 text-slate-300 hover:text-white transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+      </button>
+      <div class="text-center">
+        <span class="text-[11px] uppercase tracking-widest font-bold text-slate-500">Sedang Diputar</span>
+        <h4 id="drawer-album" class="text-xs font-semibold text-slate-300 truncate max-w-[200px]">Aura Music</h4>
+      </div>
+      <button id="btn-drawer-favorite" class="p-2.5 rounded-full bg-slate-850 hover:bg-slate-850 text-slate-400 hover:text-rose-400 transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+      </button>
+    </div>
+
+    <!-- Center: Album Artwork with glowing backdrop & Audio Visualizer Canvas -->
+    <div class="max-w-md w-full mx-auto flex-1 flex flex-col items-center justify-center relative my-4">
+      
+      <!-- Ambient Album Glow Behind Image -->
+      <div id="drawer-glow-art" class="absolute w-64 h-64 rounded-full bg-brand-500/25 blur-3xl -z-10 transition-all duration-700"></div>
+
+      <!-- Cover Art Container -->
+      <div id="cover-art-container" class="relative w-64 h-64 sm:w-80 sm:h-80 rounded-3xl overflow-hidden shadow-2xl border border-white/10 mb-6 group cursor-pointer">
+        <img id="drawer-cover" src="icons/icon-512.png" alt="Cover" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+        
+        <!-- Vinyl Groove Overlay for spinning aesthetic -->
+        <div id="vinyl-overlay" class="absolute inset-0 bg-gradient-to-tr from-black/40 via-transparent to-white/10 opacity-60 pointer-events-none"></div>
+      </div>
+
+      <!-- Audio Spectrum Visualizer Canvas -->
+      <div class="w-full h-16 sm:h-20 max-w-sm flex items-center justify-center mb-2">
+        <canvas id="visualizer-canvas" width="360" height="70" class="w-full h-full"></canvas>
+      </div>
+
+      <!-- Track Title & Artist -->
+      <div class="text-center w-full px-4">
+        <h2 id="drawer-title" class="text-xl sm:text-2xl font-black text-white tracking-tight truncate">Pilih Lagu</h2>
+        <p id="drawer-artist" class="text-sm font-medium text-slate-400 mt-0.5 truncate">Aura Offline Player</p>
+      </div>
+
+    </div>
+
+    <!-- Bottom: Scrubber, Main Controls, and Extra Utilities -->
+    <div class="max-w-md w-full mx-auto space-y-5 mb-4">
+      
+      <!-- Scrubber -->
+      <div>
+        <input type="range" id="drawer-progress" min="0" max="100" value="0" class="w-full" />
+        <div class="flex justify-between text-xs font-mono text-slate-400 mt-1">
+          <span id="drawer-curr-time">0:00</span>
+          <span id="drawer-total-time">0:00</span>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="flex items-center justify-between px-2">
+        <button id="drawer-btn-shuffle" class="p-3 text-slate-400 hover:text-white transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        </button>
+
+        <button id="drawer-btn-prev" class="p-3 text-slate-200 hover:text-white transition active:scale-90">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 fill-current" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+        </button>
+
+        <button id="drawer-btn-play-pause" class="w-16 h-16 rounded-full bg-gradient-to-tr from-brand-500 to-brand-cyan hover:from-brand-400 hover:to-cyan-400 text-white flex items-center justify-center shadow-xl shadow-brand-500/30 transition transform active:scale-95">
+          <svg id="drawer-icon-play" xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 fill-current translate-x-0.5" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <svg id="drawer-icon-pause" xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 fill-current hidden" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+        </button>
+
+        <button id="drawer-btn-next" class="p-3 text-slate-200 hover:text-white transition active:scale-90">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 fill-current" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+        </button>
+
+        <button id="drawer-btn-repeat" class="p-3 text-slate-400 hover:text-white transition relative">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          <span id="drawer-repeat-badge" class="hidden absolute top-1 right-1 text-[8px] font-black bg-brand-500 text-white rounded-full w-3.5 h-3.5 flex items-center justify-center">1</span>
+        </button>
+      </div>
+
+      <!-- Quick Drawer Extras (Lyrics, EQ, Sleep Timer) -->
+      <div class="flex items-center justify-around pt-3 border-t border-slate-800">
+        <button id="drawer-toggle-lyrics" class="flex items-center gap-1.5 text-xs text-slate-400 hover:text-brand-400 transition font-medium">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          <span>Lirik</span>
+        </button>
+
+        <button id="drawer-toggle-eq" class="flex items-center gap-1.5 text-xs text-slate-400 hover:text-brand-cyan transition font-medium">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+          <span>Equalizer</span>
+        </button>
+
+        <button id="drawer-toggle-sleeptimer" class="flex items-center gap-1.5 text-xs text-slate-400 hover:text-violet-400 transition font-medium">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+          <span>Timer</span>
+        </button>
+      </div>
+
+      <!-- Drawer Lyrics Sheet (Expandable within drawer) -->
+      <div id="drawer-lyrics-container" class="hidden glass-card rounded-2xl p-4 max-h-48 overflow-y-auto text-center space-y-2">
+        <p id="drawer-lyrics-text" class="text-xs sm:text-sm text-slate-300 leading-relaxed whitespace-pre-line font-medium"></p>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Notification Toast Container -->
+  <div id="toast" class="fixed top-5 right-5 z-50 transform translate-x-32 opacity-0 pointer-events-none transition-all duration-300 flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-dark-850/95 border border-brand-500/40 text-slate-100 shadow-2xl text-xs font-semibold">
+    <div id="toast-icon" class="w-2 h-2 rounded-full bg-brand-400"></div>
+    <span id="toast-msg">Lagu berhasil diunduh ke offline database!</span>
+  </div>
+
+  <!-- Global Drag & Drop Overlay -->
+  <div id="global-drop-overlay" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex-col items-center justify-center p-6 border-4 border-dashed border-emerald-400/70 pointer-events-none transition-all duration-300">
+    <div class="w-20 h-20 rounded-3xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-4 border border-emerald-500/40 shadow-2xl animate-bounce">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+    </div>
+    <h3 class="text-xl sm:text-2xl font-black text-white mb-2 tracking-tight">Lepaskan File Musik di Sini</h3>
+    <p class="text-sm text-emerald-300 font-medium max-w-md text-center">Audio otomatis disimpan ke memori offline dan diunggah langsung ke folder Google Drive Anda.</p>
+  </div>
+
+</body>
+</html>
