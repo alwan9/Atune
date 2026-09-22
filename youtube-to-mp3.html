@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="ATune YouTube to MP3 Converter - Konversi dan unduh video YouTube ke MP3 gratis dalam kualitas terbaik hingga 320kbps. Cepat, aman, dan tanpa batas." />
+  <meta name="theme-color" content="#0f1117" />
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="manifest" href="manifest.json" />
+  <title>YouTube to MP3 Converter - ATune</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./src/style.css" />
+</head>
+<body class="bg-dark-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- Ambient Glow Background -->
+  <div class="fixed inset-0 pointer-events-none overflow-hidden -z-10 opacity-35">
+    <div class="absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[700px] bg-gradient-to-tr from-rose-500/25 via-brand-500/20 to-brand-cyan/20 rounded-full blur-[150px] transition-all duration-1000"></div>
+  </div>
+
+  <!-- Header Navigation -->
+  <header class="sticky top-0 z-30 glass-panel border-b border-slate-800/80 px-4 sm:px-6 lg:px-8 py-3.5 backdrop-blur-xl">
+    <div class="max-w-6xl mx-auto flex items-center justify-between gap-4">
+      
+      <!-- Brand Logo -->
+      <a href="index.html" class="flex items-center gap-2.5 group">
+        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-rose-500 via-brand-500 to-brand-cyan flex items-center justify-center shadow-lg shadow-brand-500/25 text-white font-black text-xl group-hover:scale-105 transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <span class="font-extrabold text-base sm:text-lg tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">ATune</span>
+            <span class="text-[9px] uppercase font-extrabold tracking-wider px-1.5 py-0.5 rounded-md bg-rose-500/20 text-rose-300 border border-rose-500/30">YT MP3</span>
+          </div>
+          <p class="text-[10px] text-slate-400 hidden sm:block">YouTube to MP3 Converter</p>
+        </div>
+      </a>
+
+      <!-- Navigation Links -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <a href="index.html" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-semibold border border-slate-700/60 transition active:scale-95 shadow-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
+          <span class="hidden xs:inline">Pemutar Lagu Offline</span>
+          <span class="xs:hidden">Pemutar</span>
+        </a>
+
+        <a href="https://drive.google.com/drive/folders/1BcMu2RPS-ywwClvbArZl8AX_xXiwv4DU?usp=sharing" target="_blank" rel="noopener noreferrer" class="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 text-xs font-semibold border border-amber-500/30 transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 00-9.78 2.096A4.001 4.001 0 003 15z"/></svg>
+          <span>Google Drive</span>
+        </a>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-10">
+
+    <!-- ==================== HERO CONVERTER BOX (Y2MATE STYLE) ==================== -->
+    <section class="text-center space-y-6">
+      <div class="space-y-2">
+        <h1 class="text-2xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight">
+          YouTube to <span class="bg-gradient-to-r from-rose-500 via-brand-500 to-brand-cyan bg-clip-text text-transparent">MP3</span> Converter
+        </h1>
+        <p class="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto leading-relaxed">
+          Konversi video YouTube menjadi lagu MP3 berkualitas tinggi (320 kbps, 256 kbps, 192 kbps, 128 kbps) secara gratis, cepat, dan siap disimpan offline.
+        </p>
+      </div>
+
+      <!-- Input Search & Convert Card -->
+      <div class="glass-card rounded-2xl p-3 sm:p-5 border border-rose-500/30 shadow-2xl bg-gradient-to-b from-slate-900/90 via-dark-900/90 to-slate-900/90 relative">
+        <div class="flex flex-col sm:flex-row gap-2.5">
+          <div class="relative flex-1">
+            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-rose-500" fill="currentColor" viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>
+            </div>
+            <input 
+              type="url" 
+              id="yt-url-input" 
+              placeholder="Tempel link video YouTube (contoh: https://www.youtube.com/watch?v=... atau youtu.be/...)" 
+              class="w-full pl-11 pr-24 py-3 sm:py-3.5 bg-dark-950/95 border border-slate-700/80 focus:border-rose-500 rounded-xl text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-rose-500 transition shadow-inner font-sans" 
+            />
+            <button 
+              type="button" 
+              id="btn-paste" 
+              class="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition flex items-center gap-1.5"
+              title="Tempel dari Clipboard"
+            >
+              <span>📋</span>
+              <span class="hidden xs:inline">Tempel</span>
+            </button>
+          </div>
+
+          <button 
+            id="btn-convert" 
+            class="px-6 py-3 sm:py-3.5 rounded-xl bg-gradient-to-r from-rose-600 via-rose-500 to-brand-500 hover:from-rose-500 hover:to-brand-400 text-white text-xs sm:text-sm font-bold shadow-lg shadow-rose-500/25 transition transform active:scale-95 flex items-center justify-center gap-2 whitespace-nowrap"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+            <span>Konversi Sekarang</span>
+          </button>
+        </div>
+
+        <p class="text-[11px] text-slate-500 text-center sm:text-left mt-2.5 px-1 flex items-center justify-center sm:justify-start gap-1">
+          <span>💡</span>
+          <span>Tip: Mendukung semua link YouTube biasa, YouTube Shorts, dan format embed.</span>
+        </p>
+
+        <!-- Error Message Container -->
+        <div id="error-message" class="hidden mt-3 p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs text-center font-medium"></div>
+
+        <!-- Conversion Loader Spinner -->
+        <div id="conversion-loader" class="hidden py-8 flex flex-col items-center justify-center space-y-3">
+          <svg class="animate-spin h-8 w-8 text-rose-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <p class="text-xs font-semibold text-slate-300">Menghubungi server YouTube dan mengekstrak streaming audio...</p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== RESULT & QUALITY TABLE (Y2MATE STYLE) ==================== -->
+    <section id="result-card" class="hidden glass-card rounded-3xl p-5 sm:p-7 border border-brand-500/30 shadow-2xl space-y-6">
+      
+      <!-- Video Metadata Header Preview -->
+      <div class="flex flex-col sm:flex-row items-center sm:items-start gap-4 pb-5 border-b border-slate-800">
+        <div class="relative w-44 sm:w-52 aspect-video rounded-2xl overflow-hidden bg-slate-900 border border-slate-700/60 shadow-lg flex-shrink-0">
+          <img id="res-thumb" src="" alt="Thumbnail Video" class="w-full h-full object-cover" />
+          <span id="res-duration" class="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/80 text-[10px] font-mono font-bold text-white">Audio HQ</span>
+        </div>
+        <div class="flex-1 text-center sm:text-left min-w-0">
+          <span class="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold inline-block mb-1.5">Siap Dikonversi</span>
+          <h2 id="res-title" class="text-base sm:text-lg font-bold text-white tracking-tight line-clamp-2 leading-snug">Memuat judul video...</h2>
+          <p id="res-author" class="text-xs text-brand-400 font-medium mt-1">YouTube Creator</p>
+        </div>
+      </div>
+
+      <!-- Format Selection Tabs -->
+      <div>
+        <div class="flex items-center gap-2 border-b border-slate-800 pb-2">
+          <button class="px-4 py-2 rounded-xl bg-brand-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow">
+            <span>🎵 Audio MP3</span>
+          </button>
+        </div>
+
+        <!-- Quality Table -->
+        <div class="overflow-x-auto mt-4">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="text-[11px] font-mono uppercase text-slate-400 border-b border-slate-800">
+                <th class="py-2.5 px-3 sm:px-4">Kualitas Audio (Bitrate)</th>
+                <th class="py-2.5 px-2 sm:px-3 text-center">Ukuran File</th>
+                <th class="py-2.5 px-3 sm:px-4 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="quality-table-body">
+              <!-- Injected dynamically by ytmp3.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ==================== INSTRUCTIONS (3 LANGKAH MUDAH) ==================== -->
+    <section class="space-y-4">
+      <div class="text-center space-y-1">
+        <h2 class="text-lg sm:text-xl font-bold text-white tracking-tight">Cara Mengubah Video YouTube Menjadi MP3</h2>
+        <p class="text-xs text-slate-400">Ikuti 3 langkah cepat di bawah ini untuk mengunduh lagu favorit Anda.</p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+        <div class="glass-card rounded-2xl p-5 border border-slate-800 text-center space-y-2.5">
+          <div class="w-12 h-12 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center font-black text-lg mx-auto border border-rose-500/30 shadow">1</div>
+          <h3 class="text-sm font-bold text-white">Salin Link YouTube</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">Buka YouTube dan salin tautan video atau lagu yang ingin Anda unduh.</p>
+        </div>
+
+        <div class="glass-card rounded-2xl p-5 border border-slate-800 text-center space-y-2.5">
+          <div class="w-12 h-12 rounded-2xl bg-brand-500/20 text-brand-400 flex items-center justify-center font-black text-lg mx-auto border border-brand-500/30 shadow">2</div>
+          <h3 class="text-sm font-bold text-white">Tempel & Pilih Kualitas</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">Tempel link pada kolom konversi di atas, lalu pilih bitrate MP3 (hingga 320 kbps).</p>
+        </div>
+
+        <div class="glass-card rounded-2xl p-5 border border-slate-800 text-center space-y-2.5">
+          <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black text-lg mx-auto border border-emerald-500/30 shadow">3</div>
+          <h3 class="text-sm font-bold text-white">Download & Putar Offline</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">Klik tombol Download atau Simpan ke ATune untuk memutar secara offline kapan saja.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== FEATURES GRID ==================== -->
+    <section class="space-y-4">
+      <div class="text-center space-y-1">
+        <h2 class="text-lg sm:text-xl font-bold text-white tracking-tight">Fitur Unggulan ATune YouTube to MP3</h2>
+        <p class="text-xs text-slate-400">Keunggulan teknologi ekstraksi audio modern tanpa hambatan.</p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
+        <div class="glass-card rounded-2xl p-5 border border-slate-800 space-y-2">
+          <div class="text-2xl">⚡</div>
+          <h3 class="text-sm font-bold text-white">Konversi Berkecepatan Tinggi</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">Proses ekstraksi instan dalam hitungan detik tanpa waktu tunggu antrean panjang.</p>
+        </div>
+
+        <div class="glass-card rounded-2xl p-5 border border-slate-800 space-y-2">
+          <div class="text-2xl">🎧</div>
+          <h3 class="text-sm font-bold text-white">Audio Berkualitas Studio 320kbps</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">Mendukung bitrate tertinggi untuk menjaga detail suara dan dentuman bass tetap jernih.</p>
+        </div>
+
+        <div class="glass-card rounded-2xl p-5 border border-slate-800 space-y-2">
+          <div class="text-2xl">📱</div>
+          <h3 class="text-sm font-bold text-white">Pemutar Musik Offline Terintegrasi</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">Simpan langsung ke database offline ATune di browser Anda tanpa menghabiskan kuota.</p>
+        </div>
+
+        <div class="glass-card rounded-2xl p-5 border border-slate-800 space-y-2">
+          <div class="text-2xl">☁️</div>
+          <h3 class="text-sm font-bold text-white">Sinkronisasi Google Drive</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">Dapat langsung diunggah otomatis ke folder Google Drive bersama untuk diakses dari mana saja.</p>
+        </div>
+
+        <div class="glass-card rounded-2xl p-5 border border-slate-800 space-y-2">
+          <div class="text-2xl">🛡️</div>
+          <h3 class="text-sm font-bold text-white">100% Aman & Tanpa Iklan Spam</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">Bebas dari pop-up berbahaya, redirect spam, dan tidak memerlukan instalasi aplikasi pihak ketiga.</p>
+        </div>
+
+        <div class="glass-card rounded-2xl p-5 border border-slate-800 space-y-2">
+          <div class="text-2xl">✨</div>
+          <h3 class="text-sm font-bold text-white">Tanpa Perlu Akun / Registrasi</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">Gunakan langsung tanpa batas tanpa perlu mendaftar atau memasukkan informasi pribadi.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== FAQ ACCORDION ==================== -->
+    <section class="space-y-4">
+      <div class="text-center space-y-1">
+        <h2 class="text-lg sm:text-xl font-bold text-white tracking-tight">Pertanyaan yang Sering Diajukan (FAQ)</h2>
+        <p class="text-xs text-slate-400">Jawaban seputar pengunduh YouTube to MP3 ATune.</p>
+      </div>
+
+      <div class="space-y-3 pt-2">
+        <div class="glass-card rounded-2xl border border-slate-800 overflow-hidden">
+          <button class="faq-toggle w-full px-5 py-4 text-left flex items-center justify-between text-xs sm:text-sm font-bold text-slate-200 hover:text-white transition">
+            <span>Bagaimana cara mengunduh YouTube ke MP3 di HP smartphone?</span>
+            <svg class="faq-arrow w-4 h-4 text-slate-400 transition transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <div class="px-5 pb-4 text-xs text-slate-400 leading-relaxed border-t border-slate-800/80 pt-3 hidden">
+            Salin tautan video dari aplikasi YouTube, buka halaman ini di Chrome atau Safari ponsel Anda, klik tombol <strong>Tempel</strong>, lalu klik <strong>Download</strong>. File akan otomatis tersimpan di folder Unduhan ponsel Anda.
+          </div>
+        </div>
+
+        <div class="glass-card rounded-2xl border border-slate-800 overflow-hidden">
+          <button class="faq-toggle w-full px-5 py-4 text-left flex items-center justify-between text-xs sm:text-sm font-bold text-slate-200 hover:text-white transition">
+            <span>Apakah kualitas audio yang dihasilkan benar-benar 320 kbps?</span>
+            <svg class="faq-arrow w-4 h-4 text-slate-400 transition transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <div class="px-5 pb-4 text-xs text-slate-400 leading-relaxed border-t border-slate-800/80 pt-3 hidden">
+            Ya, kami mengekstrak bitrate streaming tertinggi yang disediakan oleh audio sumber YouTube untuk menghasilkan file MP3 berkualitas studio sejernih mungkin.
+          </div>
+        </div>
+
+        <div class="glass-card rounded-2xl border border-slate-800 overflow-hidden">
+          <button class="faq-toggle w-full px-5 py-4 text-left flex items-center justify-between text-xs sm:text-sm font-bold text-slate-200 hover:text-white transition">
+            <span>Apa bedanya "Download" dan "Simpan ke Offline ATune"?</span>
+            <svg class="faq-arrow w-4 h-4 text-slate-400 transition transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <div class="px-5 pb-4 text-xs text-slate-400 leading-relaxed border-t border-slate-800/80 pt-3 hidden">
+            Tombol <strong>Download</strong> akan mengunduh file file .mp3 langsung ke laptop/HP Anda. Sedangkan tombol <strong>Offline ATune</strong> akan langsung menyimpannya ke pemutar musik ATune sehingga Anda bisa langsung memutarnya dengan equalizer 5-band tanpa kuota internet.
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-800/80 py-8 px-4 text-center text-xs text-slate-500 mt-12 bg-dark-950/80 backdrop-blur-md">
+    <div class="max-w-4xl mx-auto space-y-3">
+      <div class="flex items-center justify-center gap-4 text-xs font-semibold text-slate-400 flex-wrap">
+        <a href="index.html" class="hover:text-white transition">Pemutar Musik ATune</a>
+        <span>•</span>
+        <a href="youtube-to-mp3.html" class="hover:text-white transition">YouTube to MP3</a>
+        <span>•</span>
+        <a href="https://drive.google.com/drive/folders/1BcMu2RPS-ywwClvbArZl8AX_xXiwv4DU?usp=sharing" target="_blank" rel="noopener noreferrer" class="hover:text-white transition">Google Drive Storage</a>
+      </div>
+      <p class="text-[11px] text-slate-600">
+        ATune tidak menyimpan materi berhak cipta di server web. Layanan ini dibuat untuk kemudahan konversi audio pribadi dan offline streaming.
+      </p>
+      <p class="text-[11px] text-slate-600">
+        © 2026 ATune. All rights reserved.
+      </p>
+    </div>
+  </footer>
+
+  <!-- Toast Notification Floating Box -->
+  <div id="toast-notice" class="fixed bottom-6 right-6 z-50 transform translate-y-4 opacity-0 transition-all duration-300 pointer-events-none">
+    <div class="glass-card px-4 py-3 rounded-2xl border border-brand-500/40 shadow-2xl flex items-center gap-3 bg-dark-900/95">
+      <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+      <span id="toast-text" class="text-xs font-semibold text-slate-100">Pemberitahuan</span>
+    </div>
+  </div>
+
+  <script type="module" src="./src/ytmp3.js"></script>
+</body>
+</html>
