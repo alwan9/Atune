@@ -477,7 +477,8 @@ document.addEventListener('DOMContentLoaded', () => {
         coverBlob: null,
         source: 'youtube',
         isFavorite: 0,
-        dateAdded: Date.now()
+        dateAdded: Date.now(),
+        gdriveStatus: navigator.onLine ? 'synced' : 'pending'
       };
 
       // Check duplicate
@@ -487,16 +488,26 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       // Auto upload to Google Drive folder
-      showToast(`☁️ Menyimpan offline & mengunggah ke Google Drive...`);
-      uploadAudioToGDrive(file, `${songTitle}.mp3`, {
-        title: songTitle,
-        artist: songArtist
-      }).catch((err) => console.warn('Drive upload error:', err));
+      if (navigator.onLine) {
+        showToast(`☁️ Mengunggah "${songTitle}" ke Google Drive...`);
+        try {
+          const driveRes = await uploadAudioToGDrive(file, {
+            title: songTitle,
+            artist: songArtist,
+            sourceUrl: 'imported_file'
+          });
+          if (driveRes && driveRes.status === 'success') {
+            showToast(`🎉 Berhasil! "${songTitle}" aman di Google Drive & Offline ATune.`);
+          }
+        } catch (driveErr) {
+          console.warn('Drive upload error:', driveErr);
+        }
+      }
 
-      showToast(`🎉 Berhasil disimpan ke Offline ATune & Drive! Membuka pemutar...`);
+      showToast(`🎉 File tersimpan di ATune! Membuka pemutar...`);
       setTimeout(() => {
         window.location.href = 'index.html';
-      }, 1500);
+      }, 1200);
     } catch (err) {
       console.error('Import error:', err);
       showToast(`Gagal menyimpan file: ${err.message}`);

@@ -67,17 +67,67 @@ export function blobToBase64(blob) {
 }
 
 /**
+/**
+ * Helper: Validasi & normalisasi MIME type audio untuk Google Apps Script
+ */
+function normalizeAudioMimeType(blobType, filename = '') {
+  const type = (blobType || '').toLowerCase().trim();
+  const lowerName = filename.toLowerCase();
+
+  if (type === 'audio/mpeg' || type === 'audio/mp3' || type === 'audio/x-mp3') return 'audio/mpeg';
+  if (type === 'audio/wav' || type === 'audio/x-wav') return 'audio/wav';
+  if (type === 'audio/flac' || type === 'audio/x-flac') return 'audio/flac';
+  if (type === 'audio/ogg' || type === 'audio/vorbis') return 'audio/ogg';
+  if (type === 'audio/x-m4a' || type === 'audio/m4a' || type === 'audio/mp4') return 'audio/mp4';
+  if (type === 'audio/webm') return 'audio/webm';
+  if (type === 'audio/aac') return 'audio/aac';
+
+  // Fallback berdasarkan ekstensi file
+  if (lowerName.endsWith('.mp3')) return 'audio/mpeg';
+  if (lowerName.endsWith('.m4a')) return 'audio/mp4';
+  if (lowerName.endsWith('.wav')) return 'audio/wav';
+  if (lowerName.endsWith('.flac')) return 'audio/flac';
+  if (lowerName.endsWith('.ogg')) return 'audio/ogg';
+  if (lowerName.endsWith('.webm')) return 'audio/webm';
+  if (lowerName.endsWith('.aac')) return 'audio/aac';
+
+  return 'audio/mpeg';
+}
+
+/**
  * Upload file audio ke Google Drive via GAS Web App dengan payload aman
+ * Mendukung pemanggilan (blob, metadata, onStatus) maupun (blob, filename, metadata, onStatus)
  * @param {Blob} audioBlob 
- * @param {Object} metadata { title, artist, sourceUrl }
- * @param {(status: string) => void} onStatus 
+ * @param {Object|string} metadataOrFilename 
+ * @param {Object|Function} [maybeMetadata] 
+ * @param {Function} [onStatus] 
  * @returns {Promise<Object>} Response dari Google Apps Script
  */
-export async function uploadAudioToGDrive(audioBlob, metadata = {}, onStatus = () => {}) {
+export async function uploadAudioToGDrive(audioBlob, metadataOrFilename = {}, maybeMetadata = {}, onStatus = () => {}) {
+  let metadata = {};
+  let statusCb = typeof onStatus === 'function' ? onStatus : () => {};
+
+  if (typeof metadataOrFilename === 'string') {
+    if (typeof maybeMetadata === 'object' && maybeMetadata !== null) {
+      metadata = { ...maybeMetadata };
+    }
+    if (!metadata.title) {
+      metadata.title = metadataOrFilename.replace(/\.[^/.]+$/, '');
+    }
+    if (typeof maybeMetadata === 'function') {
+      statusCb = maybeMetadata;
+    }
+  } else if (typeof metadataOrFilename === 'object' && metadataOrFilename !== null) {
+    metadata = { ...metadataOrFilename };
+    if (typeof maybeMetadata === 'function') {
+      statusCb = maybeMetadata;
+    }
+  }
+
   const gasUrl = await getGasWebhookUrl();
 
   if (!gasUrl) {
-    onStatus('Link Web App Google Drive belum diatur (file tersimpan aman di database offline).');
+    statusCb('Link Web App Google Drive belum diatur (file tersimpan aman di database offline).');
     return {
       status: 'skipped',
       message: 'Google Apps Script URL belum diisi di Pengaturan.'
@@ -85,11 +135,15 @@ export async function uploadAudioToGDrive(audioBlob, metadata = {}, onStatus = (
   }
 
   try {
+    if (!audioBlob || !audioBlob.size) {
+      throw new Error('Data file audio kosong atau tidak valid.');
+    }
+
     if (audioBlob.size > MAX_UPLOAD_BYTES) {
       throw new Error(`File terlalu besar (${(audioBlob.size / 1048576).toFixed(1)}MB). Maksimal 35MB.`);
     }
 
-    onStatus('Mengamankan data & mengonversi audio...');
+    statusCb('Mengonversi file audio untuk Google Drive...');
     const base64Data = await blobToBase64(audioBlob);
 
     // Sanitasi judul dan artis terhadap karakter berbahaya
@@ -102,15 +156,16 @@ export async function uploadAudioToGDrive(audioBlob, metadata = {}, onStatus = (
       .trim()
       .slice(0, 60);
     const filename = `${safeArtist} - ${safeTitle}.mp3`;
+    const mimeType = normalizeAudioMimeType(audioBlob.type, filename);
 
-    onStatus(`Mengunggah "${filename}" ke folder Google Drive...`);
+    statusCb(`Mengunggah "${filename}" ke folder Google Drive...`);
 
     // Payload aman dengan token rahasia aplikasi dan fingerprint rate limit
     const payload = {
       token: AURA_APP_TOKEN,
       clientFingerprint: getClientFingerprint(),
       filename,
-      mimeType: audioBlob.type || 'audio/mpeg',
+      mimeType,
       base64Data,
       title: safeTitle,
       artist: safeArtist,

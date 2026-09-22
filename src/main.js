@@ -1225,6 +1225,12 @@ function setupEventListeners() {
     if (e.target === elements.fileInput || e.target.closest('#btn-browse-files')) return;
     elements.fileInput?.click();
   });
+  elements.fileInput?.addEventListener('change', async (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      await handleLocalFiles(e.target.files);
+      e.target.value = ''; // Reset input agar file yang sama bisa dipilih ulang jika perlu
+    }
+  });
   elements.btnSyncAllGdrive?.addEventListener('click', async () => {
     await syncCatalogFromGoogleDrive(true);
     await syncPendingSongsToGDrive(true);
