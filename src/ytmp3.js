@@ -50,6 +50,35 @@ export function extractYouTubeId(url) {
   return null;
 }
 
+// Parse & Clean YouTube Video Title and Artist (from youtube-converter-master)
+export function parseArtistTitle(fullTitle, defaultAuthor = '') {
+  let raw = fullTitle || '';
+  
+  // Remove noise keywords like [Official Video], (Lyrics), 4K, HD, etc.
+  const cleanedRaw = raw
+    .replace(/ *\([^)]*(?:official|video|audio|lyrics|hd|4k|mv|music|remastered|version|visualizer)[^)]*\) */gi, ' ')
+    .replace(/ *\[[^\]]*(?:official|video|audio|lyrics|hd|4k|mv|music|remastered|version|visualizer)[^\]]*] */gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  let [parsedArtist, ...titleParts] = cleanedRaw.split(/\s*-\s*|\s*–\s*|\s*\|\s*/);
+  let parsedTitle = titleParts.join(' - ');
+
+  if (!parsedTitle) {
+    parsedTitle = cleanedRaw || fullTitle;
+    parsedArtist = (defaultAuthor || 'YouTube Artist').replace(/ - Topic$/i, '').trim();
+  } else {
+    parsedArtist = parsedArtist.trim();
+    parsedTitle = parsedTitle.trim();
+  }
+
+  return {
+    artist: parsedArtist || 'YouTube Artist',
+    title: parsedTitle || 'YouTube Audio Track',
+    fullTitle: cleanedRaw
+  };
+}
+
 // Fetch YouTube Metadata via oEmbed
 async function fetchYouTubeMetadata(videoId, rawUrl) {
   try {
@@ -58,10 +87,13 @@ async function fetchYouTubeMetadata(videoId, rawUrl) {
     if (res.ok) {
       const data = await res.json();
       if (data && data.title) {
+        const parsed = parseArtistTitle(data.title, data.author_name);
         return {
           id: videoId,
-          title: data.title || 'YouTube Audio Track',
-          author: data.author_name || 'YouTube Creator',
+          title: parsed.title,
+          artist: parsed.artist,
+          fullTitle: data.title,
+          author: data.author_name || parsed.artist,
           thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
           maxThumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
           url: `https://www.youtube.com/watch?v=${videoId}`
@@ -72,9 +104,12 @@ async function fetchYouTubeMetadata(videoId, rawUrl) {
     console.warn('oEmbed fetch error, fallback to basic metadata:', err);
   }
 
+  const parsed = parseArtistTitle(`YouTube Video (${videoId})`, 'YouTube Audio');
   return {
     id: videoId,
-    title: `YouTube Video (${videoId})`,
+    title: parsed.title,
+    artist: parsed.artist,
+    fullTitle: `YouTube Video (${videoId})`,
     author: 'YouTube Audio',
     thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
     maxThumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
@@ -82,7 +117,7 @@ async function fetchYouTubeMetadata(videoId, rawUrl) {
   };
 }
 
-// Render Result Card (Quality options like Y2mate)
+// Render Result Card (Quality options like Y2mate + Trimmer & Tag Editor)
 function renderResult(video) {
   currentVideoData = video;
 
@@ -90,14 +125,20 @@ function renderResult(video) {
   const resTitle = document.getElementById('res-title');
   const resAuthor = document.getElementById('res-author');
   const resDuration = document.getElementById('res-duration');
+  const editTitleInput = document.getElementById('edit-song-title');
+  const editArtistInput = document.getElementById('edit-song-artist');
 
   if (resThumb) {
     resThumb.src = video.thumbnail;
     resThumb.onerror = () => { resThumb.src = video.thumbnail; };
   }
   if (resTitle) resTitle.textContent = video.title;
-  if (resAuthor) resAuthor.textContent = video.author;
+  if (resAuthor) resAuthor.textContent = video.artist || video.author;
   if (resDuration) resDuration.textContent = 'Audio HQ';
+
+  // Fill in interactive editor fields
+  if (editTitleInput) editTitleInput.value = video.title;
+  if (editArtistInput) editArtistInput.value = video.artist || video.author;
 
   // Quality table rows
   const tableBody = document.getElementById('quality-table-body');
@@ -301,9 +342,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     showToast(`Memproses dan menyimpan "${file.name}"...`);
     try {
+      const editTitleInput = document.getElementById('edit-song-title');
+      const editArtistInput = document.getElementById('edit-song-artist');
       const cleanTitle = file.name.replace(/\.[^/.]+$/, '');
-      const songTitle = currentVideoData?.title || cleanTitle;
-      const songArtist = currentVideoData?.author || 'YouTube Audio';
+      const songTitle = editTitleInput?.value?.trim() || currentVideoData?.title || cleanTitle;
+      const songArtist = editArtistInput?.value?.trim() || currentVideoData?.artist || currentVideoData?.author || 'YouTube Audio';
 
       const newSong = {
         title: songTitle,
